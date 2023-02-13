@@ -11,7 +11,6 @@ import maf.modular.scheme.PtrAddr
 import maf.util.MonoidInstances.setMonoid
 import maf.util.benchmarks.Table
 import maf.util.*
-import maf.language.AScheme.ASchemeValues.*
 import maf.language.racket.RMod
 
 trait Product2SchemeLattice[L, O, A <: Address] extends SchemeLattice[L, A]:

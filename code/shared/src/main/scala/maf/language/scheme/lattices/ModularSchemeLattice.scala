@@ -6,14 +6,10 @@ import maf.lattice.{AbstractSetType, AbstractType, AbstractWrapType, HMap, HMapK
 import maf.util.MonoidImplicits.*
 import maf.language.CScheme.TID
 import maf.language.ContractScheme.ContractValues._
-import maf.language.AScheme.ASchemeValues.{Actor, Behavior}
 import maf.language.scheme.primitives.SchemePrimitive
 import maf.lattice.interfaces._
 import maf.util.datastructures.SmartUnion._
 import maf.util._
-import smtlib.theories.Core.False
-import maf.language.AScheme.ASchemeValues.Future
-import maf.language.AScheme.ASchemeLattice
 
 /**
  * Defines a Scheme lattice based on other lattices. Example usage: val address = NameAddress val lattice = new ModularSchemeLattice[SchemeExp,

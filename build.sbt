@@ -5,7 +5,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(mafJVM, mafJS)
 
-lazy val maf = crossProject(JVMPlatform, JSPlatform)
+lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full)
   .in(file("code"))
@@ -17,11 +17,7 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform)
     scalaVersion := "3.1.0",
     //crossScalaVersions ++= Seq("2.13.6", "3.1.0"),
     /** Dependencies */
-    libraryDependencies += "org.scala-lang.modules" %%% "scala-parser-combinators" % "2.0.0",
-    libraryDependencies += "com.opencsv" % "opencsv" % "5.5.2",
-    libraryDependencies += ("com.typesafe.akka" %% "akka-actor-typed" % "2.6.18").cross(CrossVersion.for3Use2_13),
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.10",
-    libraryDependencies += "com.typesafe" % "config" % "1.4.1",
+    libraryDependencies += "org.scala-lang.modules" %%% "scala-parser-combinators" % "2.1.1",
     /** Compilation options */
     maxErrors := 5,
     /** Configuration for running the tests */
@@ -29,14 +25,7 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform)
     Test / testOptions += Tests.Argument("-oI"), // Produces a summary after running the tests, showing the failing tests
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.9" % "test",
     libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % "test",
-    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % "test",
-    libraryDependencies += "com.vladsch.flexmark" % "flexmark-all" % "0.62.2" % Test,
-    resolvers += "bramvdbogaerde" at "https://raw.githubusercontent.com/bramvdbogaerde/maven-repo/master",
-    libraryDependencies += ("space.vdb" %% "scala-smtlib" % "0.4.4"),
-    libraryDependencies ++= Seq(
-       "dev.optics" %% "monocle-core"  % "3.1.0",
-       "dev.optics" %% "monocle-macro" % "3.1.0",
-      ),
+    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-17" % "3.2.15.0" % "test",
     /** Imported options from https://tpolecat.github.io/2017/04/25/scalac-flags.html */
     scalacOptions ++= Seq(
       "-deprecation", // Emit warning and location for usages of deprecated APIs.
@@ -98,6 +87,10 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform)
     /** Dependencies */
     libraryDependencies += ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13)
   )
+  .nativeSettings(
+    Compile / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
+  )
 
 lazy val mafJVM = maf.jvm
 lazy val mafJS = maf.js
+lazy val mafNative = maf.native

@@ -9,7 +9,6 @@ import javax.lang.model.element.ModuleElement.ProvidesDirective
 import maf.modular.scheme.modflocal.SchemeSemantics
 import maf.modular.scheme.SchemeDomain
 import maf.modular.scheme.modflocal.SchemeModFLocalSensitivity
-import maf.language.AScheme.ASchemeParser
 import maf.lattice.HMap
 import maf.lattice.AbstractSetType
 

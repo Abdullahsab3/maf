@@ -2,7 +2,6 @@ package maf.language.scheme
 
 import maf.core._
 import maf.language.sexp._
-import maf.language.sexp.SExpUtils.*
 
 /** Trait that provides a method to compile an s-expression into a standard Scheme expression. */
 trait BaseSchemeCompiler:
@@ -144,14 +143,6 @@ trait BaseSchemeCompiler:
             })
         case SExpPair(SExpId(Identifier("and", _)), args, _) =>
             tailcall(compileBody(args)).map(SchemeAnd(_, exp.idn))
-        //
-        // Racket modules
-        //
-        case Ident("require") :::: clauses =>
-            tailcall(compileBody(clauses)).map(RacketRequire(_, exp.idn))
-        case Ident("provide") :::: clauses =>
-            tailcall(compileBody(clauses)).map(RacketProvide(_, exp.idn))
-
         // case Ident("syntax") :::: obj :::: line :::: col => ???
         case SExpPair(SExpId(Identifier("or", _)), args, _) =>
             tailcall(compileBody(args)).map(SchemeOr(_, exp.idn))
