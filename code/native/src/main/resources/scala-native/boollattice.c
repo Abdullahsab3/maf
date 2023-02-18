@@ -1,33 +1,33 @@
 #include <stdio.h>
 #include <stdint.h>
 
-const uint8_t false = 0;
-const uint8_t true = 1;
-const uint8_t bottom = 2;
-const uint8_t top = 3;
+const int false = 0;
+const int true = 1;
+const int bottom = 2;
+const int top = 3;
 
 
-uint8_t isConstant(uint8_t b)
+int isConstant(int b)
 {
     return b < 2;
 }
 
-uint8_t isTrue(uint8_t b)
+int boolIsTrue(int b)
 {
     return b & 1;
 }
 
-uint8_t isFalse(uint8_t b)
+int boolIsFalse(int b)
 {
     return isConstant(b) ? !b : b & 1;
 }
 
-uint8_t not(uint8_t b)
+int boolNot(int b)
 {
     return isConstant(b) ? !b : b;
 }
 
-uint8_t boolsjoin(uint8_t a, uint8_t b)
+int boolJoin(int a, int b)
 {
     // a is bottom element
     if (a == bottom)
@@ -51,7 +51,7 @@ uint8_t boolsjoin(uint8_t a, uint8_t b)
     return a == b ? a : top;
 }
 
-uint8_t boolsmeet(uint8_t a, uint8_t  b) {
+int boolMeet(int a, int  b) {
     if(a == top) {
         return b;
     }
@@ -66,7 +66,7 @@ uint8_t boolsmeet(uint8_t a, uint8_t  b) {
     return a == b ? a : bottom;
 }
 
-uint8_t boolssubsumes(uint8_t a, uint8_t b) {
+int boolSubsumes(int a, int b) {
     if(a == top || b == bottom) {
         return true;
     }
@@ -76,7 +76,7 @@ uint8_t boolssubsumes(uint8_t a, uint8_t b) {
     return isConstant(a) ? a == b : false;
 }
 
-char *showBool(uint8_t b) {
+char *showBool(int b) {
     switch(b) {
         case true:
         return "true";
@@ -91,3 +91,98 @@ char *showBool(uint8_t b) {
 }
 
 
+
+
+
+
+/* const int false = 0;
+const int true = 1;
+const int bottom = 2;
+const int top = 3;
+
+
+int isConstant(int b)
+{
+    return b < 2;
+}
+
+int isTrue(int b)
+{
+    return b & 1;
+}
+
+int isFalse(int b)
+{
+    return isConstant(b) ? !b : b & 1;
+}
+
+int not(int b)
+{
+    return isConstant(b) ? !b : b;
+}
+
+int boolsjoin(int a, int b)
+{
+    // a is bottom element
+    if (a == bottom)
+    {
+        return b;
+    }
+    // b is bottom element
+    if (b == bottom)
+    {
+        return a;
+    }
+
+    // Either one of the elements is the top element
+    // This works becaus we already checked whether one of them is bottom element (i.e., 0000 0010)
+    // So, if the third rightmost bit is 1 now, we have a top element
+    if ((a | b) >> 1)
+    {
+        return top;
+    }
+    // a and b are both constants
+    return a == b ? a : top;
+}
+
+int boolsmeet(int a, int  b) {
+    if(a == top) {
+        return b;
+    }
+    if(b == top) {
+        return a;
+    }
+
+    if((a | b) >> 1) {
+        return bottom;
+    }
+
+    return a == b ? a : bottom;
+}
+
+int boolssubsumes(int a, int b) {
+    if(a == top || b == bottom) {
+        return true;
+    }
+    if(b == top) {
+        return false;
+    }
+    return isConstant(a) ? a == b : false;
+}
+
+char *showBool(int b) {
+    switch(b) {
+        case true:
+        return "true";
+        case false:
+        return "false";
+        case top:
+        return "Boolean";
+        case bottom:
+        return "Boolean.⊥";
+    }
+    return "unknownType";
+}
+
+
+ */

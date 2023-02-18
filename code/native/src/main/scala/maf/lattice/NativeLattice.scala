@@ -9,16 +9,17 @@ import scalanative.unsafe._
 import scala.scalanative.unsigned.UByte
 
 // Low-level implementation of the constant propagation implemenation.
+// prefixed with ll == low-level implementation
 
 // Boollattice 
 @extern object boolLatticeOps:
-    def isTrue(b: UByte): UByte = extern
-    def isFalse(b: UByte): UByte = extern
-    def not(b: UByte): UByte = extern
+    def boolIsTrue(b: CInt): CInt = extern
+    def boolIsFalse(b: CInt): CInt = extern
+    def boolNot(b: CInt): CInt = extern
     
-    def boolsjoin(a: UByte, b: UByte): UByte = extern
-    def boolsmeet(a: UByte, b: UByte): UByte = extern
-    def boolssubsumes(a: UByte, b: UByte): UByte = extern
+    def boolJoin(a: CInt, b: CInt): CInt = extern
+    def boolMeet(a: CInt, b: CInt): CInt = extern
+    def boolSubsumes(a: CInt, b: CInt): CInt = extern
 
 
 object NativeLattice:
@@ -31,13 +32,23 @@ object NativeLattice:
 
     case object Bottom extends L[Nothing]
       
-    abstract class BaseInstance[A: Show](typeName: String) extends Lattice[L[A]]:
+    abstract class AbstractBaseInstance[T](val typeName: String) extends Lattice[T]:
+        def show(x: T): String
+        val bottom: T
+        val top: T
+        def join(x: T, y: => T): T
+        def meet(x: T, y: => T): T
+        def subsumes(x: T, y: => T): Boolean
+        def eql[B2: BoolLattice](n1: T, n2: T): B2
+    
+    abstract class BaseInstance[A: Show](typeName: String) extends AbstractBaseInstance[L[A]](typeName):
         def show(x: L[A]): String = x match
             case Top         => typeName
             case Constant(x) => x.toString
             case Bottom      => s"$typeName.⊥"
         val bottom: L[A] = Bottom
         val top: L[A] = Top
+        
         def join(x: L[A], y: => L[A]): L[A] = x match
             case Top => Top
             case Constant(_) =>
@@ -82,7 +93,61 @@ object NativeLattice:
             case (Bottom, _)                => BoolLattice[B2].bottom
             case (_, Bottom)                => BoolLattice[B2].bottom
 
-    type B = L[Boolean]
+
+/* 
+    abstract class BaseInstance[A: Show](typeName: String) extends Lattice[L[A]]:
+        def show(x: L[A]): String = x match
+            case Top         => typeName
+            case Constant(x) => x.toString
+            case Bottom      => s"$typeName.⊥"
+        val bottom: L[A] = Bottom
+        val top: L[A] = Top
+        
+        def join(x: L[A], y: => L[A]): L[A] = x match
+            case Top => Top
+            case Constant(_) =>
+                y match
+                    case Top => Top
+                    case Constant(_) =>
+                        if x == y then x
+                        else Top
+                    case Bottom => x
+            case Bottom => y
+            
+        def meet(x: L[A], y: => L[A]): L[A] = x match
+            case Bottom => Bottom
+            case Constant(_) =>
+                y match
+                    case Top => x
+                    case Constant(_) =>
+                        if x == y then x
+                        else Bottom
+                    case Bottom => Bottom
+            case Top => y
+
+
+        def subsumes(x: L[A], y: => L[A]): Boolean = x match
+            case Top => true
+            case Constant(_) =>
+                y match
+                    case Top         => false
+                    case Constant(_) => x == y
+                    case Bottom      => true
+            case Bottom =>
+                y match
+                    case Top         => false
+                    case Constant(_) => false
+                    case Bottom      => true
+
+        def eql[B2: BoolLattice](n1: L[A], n2: L[A]): B2 = (n1, n2) match
+            case (Top, Top)                 => BoolLattice[B2].top
+            case (Top, Constant(_))         => BoolLattice[B2].top
+            case (Constant(_), Top)         => BoolLattice[B2].top
+            case (Constant(x), Constant(y)) => BoolLattice[B2].inject(x == y)
+            case (Bottom, _)                => BoolLattice[B2].bottom
+            case (_, Bottom)                => BoolLattice[B2].bottom */
+
+    type B = CInt
     type S = L[String]
     type I = L[BigInt]
     type R = L[Double]
@@ -90,20 +155,42 @@ object NativeLattice:
     type Sym = L[String]
 
     object L:
-        implicit val boolCP: BoolLattice[B] = new BaseInstance[Boolean]("Bool") with BoolLattice[B] {
-            def inject(b: Boolean): B = Constant(b)
-            def isTrue(b: B): Boolean = b match
-                case Top         => true
-                case Constant(x) => x
-                case Bottom      => false
-            def isFalse(b: B): Boolean = b match
-                case Top         => true
-                case Constant(x) => !x
-                case Bottom      => false
-            def not(b: B): B = b match
-                case Top         => Top
-                case Constant(x) => Constant(!x)
-                case Bottom      => Bottom
+        def CInt2Boolean(i: B): Boolean = 
+            if(i == 0) then false else true
+        implicit val boolCP: BoolLattice[B] = new AbstractBaseInstance[B]("Bool") with BoolLattice[B] {
+            val top = 3
+            val bottom = 2
+            def inject(b: Boolean): B = if b then 1 else 0
+            def isTrue(b: B): Boolean = 
+                import boolLatticeOps.boolIsTrue
+                val result = boolIsTrue(b)
+                CInt2Boolean(result)
+            def isFalse(b: B): Boolean =
+                import boolLatticeOps.boolIsFalse
+                val result = boolIsFalse(b)
+                CInt2Boolean(result)
+            def not(b: B): B =
+                import boolLatticeOps.boolNot
+                boolNot(b) 
+            def join(x: B, y: => B): B =
+                import boolLatticeOps.boolJoin
+                boolJoin(x, y)
+            def meet(x: B, y: => B): B =
+                import boolLatticeOps.boolMeet
+                boolMeet(x, y)
+            def subsumes(x: B, y: => B): Boolean =
+                import boolLatticeOps.boolSubsumes
+                val result = boolSubsumes(x, y)
+                CInt2Boolean(result)
+            def show(x: B): String =
+                if(x == top) then typeName
+                else if(x == bottom) then s"$typeName.⊥"
+                else CInt2Boolean(x).toString
+
+            def eql[B2: BoolLattice](n1: B, n2: B): B2 =
+                if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else if (n1 == top || n2 == top) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(n1 == n2)
         }
 
         implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
