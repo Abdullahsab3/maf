@@ -5,7 +5,23 @@ import maf.core._
 import maf.lattice.interfaces._
 import NumOps._
 
-object ConstantPropagation:
+import scalanative.unsafe._
+import scala.scalanative.unsigned.UByte
+
+// Low-level implementation of the constant propagation implemenation.
+
+// Boollattice 
+@extern object boolLatticeOps:
+    def isTrue(b: UByte): UByte = extern
+    def isFalse(b: UByte): UByte = extern
+    def not(b: UByte): UByte = extern
+    
+    def boolsjoin(a: UByte, b: UByte): UByte = extern
+    def boolsmeet(a: UByte, b: UByte): UByte = extern
+    def boolssubsumes(a: UByte, b: UByte): UByte = extern
+
+
+object NativeLattice:
 
     sealed trait L[+A]
 
@@ -14,7 +30,7 @@ object ConstantPropagation:
     case class Constant[A](x: A) extends L[A]
 
     case object Bottom extends L[Nothing]
-
+      
     abstract class BaseInstance[A: Show](typeName: String) extends Lattice[L[A]]:
         def show(x: L[A]): String = x match
             case Top         => typeName
@@ -22,7 +38,6 @@ object ConstantPropagation:
             case Bottom      => s"$typeName.⊥"
         val bottom: L[A] = Bottom
         val top: L[A] = Top
-        
         def join(x: L[A], y: => L[A]): L[A] = x match
             case Top => Top
             case Constant(_) =>
