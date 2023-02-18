@@ -15,7 +15,7 @@ import scala.concurrent.duration.*
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
-import maf.modular.scheme.SchemeConstantPropagationDomain
+import maf.modular.scheme.NativeSchemeDomain
 
 
 
@@ -82,7 +82,7 @@ object AnalyzeProgram:
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
             with SchemeModFNoSensitivity
-            with SchemeConstantPropagationDomain
+            with NativeSchemeDomain
             with DependencyTracking[SchemeExp]
             with FIFOWorklistAlgorithm[SchemeExp] {
             override def intraAnalysis(cmp: SchemeModFComponent) =
