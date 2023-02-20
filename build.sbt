@@ -23,9 +23,9 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     /** Configuration for running the tests */
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument("-oI"), // Produces a summary after running the tests, showing the failing tests
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.9" % "test",
-    libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % "test",
-    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-17" % "3.2.15.0" % "test",
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.15" % "test",
+    libraryDependencies += "org.scalacheck" %%% "scalacheck" % "1.16.0" % "test",
+    libraryDependencies += "org.scalatestplus" %%% "scalacheck-1-17" % "3.2.15.0" % "test",
     /** Imported options from https://tpolecat.github.io/2017/04/25/scalac-flags.html */
     scalacOptions ++= Seq(
       "-deprecation", // Emit warning and location for usages of deprecated APIs.
