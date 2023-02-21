@@ -35,8 +35,4 @@ object Timer:
     def timeOnly[A](block: => A): Long = time(block)._1
 
 object Clock:
-
-    val stdFormat: SimpleDateFormat = new SimpleDateFormat("'on' yyyy-MM-dd 'at' HH'h'mm'm'ss's'")
-
-    def now(): Date = Calendar.getInstance().nn.getTime.nn
-    def nowStr(): String = stdFormat.format(now()).nn
+    def nowStr(): String = java.time.LocalDateTime.now().toString()

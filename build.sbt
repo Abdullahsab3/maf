@@ -14,10 +14,11 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "maf",
     organization := "soft",
     version := "2.0",
-    scalaVersion := "3.1.0",
+    scalaVersion := "3.2.1",
     //crossScalaVersions ++= Seq("2.13.6", "3.1.0"),
     /** Dependencies */
     libraryDependencies += "org.scala-lang.modules" %%% "scala-parser-combinators" % "2.1.1",
+    libraryDependencies += "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
     /** Compilation options */
     maxErrors := 5,
     /** Configuration for running the tests */
