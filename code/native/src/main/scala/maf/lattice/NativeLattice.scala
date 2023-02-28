@@ -194,6 +194,49 @@ object NativeLattice:
                     strcat(struct._2, s2._2)
                     struct
             
+            private def getSubString(s: CString, sub: CString, from: Int, to: Int): Unit =
+                var i = 0
+                while(i < to) do
+                    !(sub + i) = !(s + from + i - 1)
+                
+                !(sub + i) = 0.toByte // 0-terminated string in C
+                
+            def substring[I2: IntLattice](s: Sn, from: I2, to: I2): Sn =
+                if(s == top) then top
+                else if(s == bottom) then bottom
+                else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
+                else
+                    val stringLength = strlen(s._2).toInt
+                    var i = 0
+                    var from2 = -1
+                    var to2 = -1
+                    var struct = top
+
+                    // whiles are more optimized in SN than for loops
+                    while(i < stringLength) do
+                        if BoolLattice[B].isTrue(IntLattice[I2].eql[B](from, IntLattice[I2].inject(i))) then
+                            from2 = i
+                        if BoolLattice[B].isTrue(IntLattice[I2].eql[B](to, IntLattice[I2].inject(i))) then
+                            to2 = i
+                        if(from2 >= 0 && to2 >= 0) then
+                            val substringLength = to2 - from2 + 1
+                            val ss: CString = stackalloc[Byte](substringLength)
+                            getSubString(s._2, ss, from2, to2)
+                            struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+                            struct._1 = 1
+                            struct._2 = malloc(substringLength.toULong).asInstanceOf[CString]
+                            strcpy(struct._2, ss)
+
+                            // substring
+
+
+                            // breaks dont exist? no problem :p
+                            i = stringLength
+                        i = i + 1
+                    struct
+                        
+                    
+
                     
 
         } 
