@@ -4,6 +4,9 @@ import maf.util._
 import maf.core._
 import maf.lattice.interfaces._
 import NumOps._
+import scala.scalanative.libc.stdlib.{malloc, free}
+import scala.scalanative.libc.string.{strlen, strcpy, strcat}
+import scalanative.unsigned.UnsignedRichInt
 
 import scalanative.unsafe._
 import scala.scalanative.unsigned.UByte
@@ -95,7 +98,8 @@ object NativeLattice:
 
     // First field: top (3), bottom (2), constant(1)
     // second field: pointer to the memory containing the string
-    type Sn = Ptr[CStruct2[CInt, CString]]
+    type Sn_struct = CStruct2[CInt, CString]
+    type Sn = Ptr[Sn_struct]
 
     type B = CInt
     type S = L[String]
@@ -106,7 +110,7 @@ object NativeLattice:
 
     object L:
         def CInt2Boolean(i: B): Boolean = 
-            if(i == 0) then false else true
+            i == 1
         implicit val boolCP: BoolLattice[B] = new AbstractBaseInstance[B]("Bool") with BoolLattice[B] {
             val top = 3
             val bottom = 2
@@ -145,10 +149,54 @@ object NativeLattice:
 
         // Ptr[CStruct2[CInt, CString]]
 
-/*         implicit val nativeStringCP: StringLattice[Sn] = new AbstractBaseInstance[Sn]("Str") with StringLattice[Sn] {
-            //val top: Sn = 
+         implicit val nativeStringCP: StringLattice[Sn] = new AbstractBaseInstance[Sn]("Str") with StringLattice[Sn] {
+            
+            
+            val top: Sn = 
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+                struct._1 = 3
+                struct
+            val bottom: Sn = 
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+                struct._1 = 2
+                struct
+            
+            def inject(x: String): Sn =
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+                struct._1 = 1
+                /**
+                  * TODO: dit kan zeker beter:
+                    In plaats van de ingebouwd toCString te gebruiken,
+                    zet de string om naar bytes; e.g.: (str + 0.toChar).getBytes().at(0)
+                  */
+                Zone {implicit z => 
+                    val Cx: CString = toCString(x)
+                    val stringLength = strlen(Cx) + 1.toULong
+                    struct._2 = malloc(stringLength).asInstanceOf[CString]
+                    strcpy( struct._2, Cx)
+                }
+                struct
+            
+            def length[I2: IntLattice](s: Sn): I2 = 
+                if(s == top) then IntLattice[I2].top
+                else if (s == bottom) then IntLattice[I2].bottom
+                else IntLattice[I2].inject(strlen(s._2).toInt)
 
-        } */
+            def append(s1: Sn, s2: Sn): Sn = 
+                if(s1 == top || s2 == top) then top
+                else if(s1 == bottom || s2 == bottom) then bottom
+                else 
+                    val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+                    struct._1 = 1
+                    val stringLength = strlen(s1._2) + 1.toULong
+                    struct._2 = malloc(stringLength).asInstanceOf[CString]
+                    strcpy(struct._2, s1._2)
+                    strcat(struct._2, s2._2)
+                    struct
+            
+                    
+
+        } 
         implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
             def inject(x: String): S = Constant(x)
             def length[I2: IntLattice](s: S): I2 = s match

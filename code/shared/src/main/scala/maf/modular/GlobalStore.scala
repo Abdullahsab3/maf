@@ -50,6 +50,9 @@ trait GlobalStore[Expr <: Expression] extends ModAnalysis[Expr] with AbstractDom
             intra.store.getOrElse(addr, lattice.bottom)
         // writing addresses of the global store
         def writeAddr(addr: Addr, value: Value): Boolean =
+            print(addr)
+            print(" ")
+            println(value)
             updateAddr(intra.store, addr, value).map { updated =>
                 intra.store = updated
                 trigger(AddrDependency(addr))
