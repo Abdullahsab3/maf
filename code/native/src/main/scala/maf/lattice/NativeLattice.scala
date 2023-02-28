@@ -220,16 +220,10 @@ object NativeLattice:
                             to2 = i
                         if(from2 >= 0 && to2 >= 0) then
                             val substringLength = to2 - from2 + 1
-                            val ss: CString = stackalloc[Byte](substringLength)
-                            getSubString(s._2, ss, from2, to2)
                             struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
                             struct._1 = 1
                             struct._2 = malloc(substringLength.toULong).asInstanceOf[CString]
-                            strcpy(struct._2, ss)
-
-                            // substring
-
-
+                            getSubString(s._2, struct._2, from2, to2)
                             // breaks dont exist? no problem :p
                             i = stringLength
                         i = i + 1
