@@ -163,16 +163,20 @@ object NativeLattice:
             
             def inject(x: String): Sn =
                 val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
-                struct._1 = 1
+                /**
+                  * TODO: Deze variabele kan je gebruiken om de lengte van de string bij te houden!
+                  * Op die manier moet je niet telkens opnieuw strlenen
+                  */
+                val stringLength = x.length()
+                struct._1 = stringLength
                 /**
                   * TODO: dit kan zeker beter:
-                    In plaats van de ingebouwd toCString te gebruiken,
+                    In plaats van de ingebouwde toCString te gebruiken,
                     zet de string om naar bytes; e.g.: (str + 0.toChar).getBytes().at(0)
                   */
                 Zone {implicit z => 
                     val Cx: CString = toCString(x)
-                    val stringLength = strlen(Cx) + 1.toULong
-                    struct._2 = malloc(stringLength).asInstanceOf[CString]
+                    struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                     strcpy( struct._2, Cx)
                 }
                 struct
@@ -180,16 +184,16 @@ object NativeLattice:
             def length[I2: IntLattice](s: Sn): I2 = 
                 if(s == top) then IntLattice[I2].top
                 else if (s == bottom) then IntLattice[I2].bottom
-                else IntLattice[I2].inject(strlen(s._2).toInt)
+                else IntLattice[I2].inject(s._1)
 
             def append(s1: Sn, s2: Sn): Sn = 
                 if(s1 == top || s2 == top) then top
                 else if(s1 == bottom || s2 == bottom) then bottom
                 else 
                     val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
-                    struct._1 = 1
-                    val stringLength = strlen(s1._2) + 1.toULong
-                    struct._2 = malloc(stringLength).asInstanceOf[CString]
+                    val stringLength = s1._1 + s2._1
+                    struct._1 = stringLength
+                    struct._2 = malloc(stringLength.toULong).asInstanceOf[CString]
                     strcpy(struct._2, s1._2)
                     strcat(struct._2, s2._2)
                     struct
@@ -206,7 +210,7 @@ object NativeLattice:
                 else if(s == bottom) then bottom
                 else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
                 else
-                    val stringLength = strlen(s._2).toInt
+                    val stringLength = s._1
                     var i = 0
                     var from2 = -1
                     var to2 = -1
@@ -227,11 +231,39 @@ object NativeLattice:
                             // breaks dont exist? no problem :p
                             i = stringLength
                         i = i + 1
-                    struct
-                        
-                    
+                    struct      
 
-                    
+            def ref[I2: IntLattice, C2: CharLattice](s: Sn, i: I2): C2 =
+                if(s == top) then CharLattice[C2].top
+                else if(s == bottom) then CharLattice[C2].bottom
+                else 
+                    var c = 0
+                    val stringLength = s._1
+                    var charref = CharLattice[C2].bottom
+                    /**
+                      * TODO: die while loops kunnen misschien anders
+                      * we zijn minder geinteresseerd in genericiteit,
+                      * dus mss generciteit verliezen ten koste van een betere performantie
+                      * en in plaats van te zoeken naar c, kunnen we mss gwn checken of het top/bottom/constant 
+                      * is in onze implementatie van de int lattice
+                      */
+                    while(c < stringLength) do
+                        if BoolLattice[B].isTrue(IntLattice[I2].eql[B](i, IntLattice[I2].inject(c))) && c < stringLength then
+                            val charInCString = !(s._2 + c)
+                            charref = CharLattice[C2].inject(charInCString.toChar)
+                            c = stringLength
+                        c = c + 1
+                    charref
+
+
+
+
+
+
+
+            
+
+            
 
         } 
         implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
