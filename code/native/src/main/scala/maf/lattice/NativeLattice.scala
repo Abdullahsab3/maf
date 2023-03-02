@@ -4,8 +4,8 @@ import maf.util._
 import maf.core._
 import maf.lattice.interfaces._
 import NumOps._
-import scala.scalanative.libc.stdlib.{malloc, free}
-import scala.scalanative.libc.string.{strlen, strcpy, strcat}
+import scala.scalanative.libc.stdlib.{malloc, free, atol}
+import scala.scalanative.libc.string.{strlen, strcpy, strcat, strcmp}
 import scalanative.unsigned.UnsignedRichInt
 
 import scalanative.unsafe._
@@ -255,16 +255,40 @@ object NativeLattice:
                         c = c + 1
                     charref
 
+            def set[I2: IntLattice, C2: CharLattice](
+                s: Sn,
+                i: I2,
+                c: C2
+              ): Sn =
+                if(s == bottom) then bottom
+                else if (IntLattice[I2].isBottom(i) || CharLattice[C2].isBottom(c)) then bottom
+                else if(s == top) then top
+                else if (i == IntLattice[I2].top || c == CharLattice[C2].top) then top
+                else 
+                    // This could probably be written better
+                    !(s._2 + i.asInstanceOf[Int]) = c.asInstanceOf[CChar]
+                    s
+            def lt[B2 : BoolLattice](s1: Sn, s2: Sn): B2 = 
+                if(s1 == bottom || s2 == bottom) then BoolLattice[B2].bottom
+                else if(s1 == top || s2 == top) then BoolLattice[B2].top
+                else
+                    val cmp = strcmp(s1._2, s2._2)
+                    BoolLattice[B2].inject(cmp < 0)
 
+            def toSymbol[Sym2: SymbolLattice](s: Sn): Sym2 = 
+                if(s == top) then SymbolLattice[Sym2].top
+                else if(s == bottom) then SymbolLattice[Sym2].bottom
+                else 
+                    val scalaS = fromCString(s._2)
+                    SymbolLattice[Sym2].inject(scalaS)
 
-
-
-
-
-            
-
-            
-
+            def toNumber[I2: IntLattice](s: Sn) = 
+                if(s == bottom) then MayFail.success(IntLattice[I2].bottom)
+                else if(s == top) then MayFail.success(IntLattice[I2].top).addError(NotANumberString)
+                else
+                    val l =  atol(s._2)
+                    if(l == 0 && !(s._2) != 0.toChar) then MayFail.failure(NotANumberString)
+                    else MayFail.success(IntLattice[I2].inject(BigInt(l.toInt)))
         } 
         implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
             def inject(x: String): S = Constant(x)
