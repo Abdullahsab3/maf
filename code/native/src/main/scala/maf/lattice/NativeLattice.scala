@@ -154,8 +154,7 @@ object NativeLattice:
             def join(x: Sn, y: => Sn): Sn =
                 // exhaust all the possibilities in order to know x and y are "constants" at the end
 
-                if(x == top) then top
-                else if(y == top) then top
+                if(x == top || y == top) then top
                 else if (y == bottom) then x
                 else if (x == bottom) then y
                 else if(x == y) then x
@@ -174,6 +173,29 @@ object NativeLattice:
                 else if(y == top) then false
                 else if(y == bottom) then true 
                 else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
+
+            /**
+              * TODO: refactor these procedures since they are probably similar across all lattices
+              *
+              * @param x
+              */
+            def show(x: Sn): String =
+                if(x == top) then typeName
+                else if(x == bottom) then s"$typeName.⊥"
+                else fromCString(x._2)
+            
+            /**
+              * TODO: this too can be refactored, since this is just a bounded referential equality check
+              *
+              * @param n1
+              * @param n2
+              * @return
+              */
+            def eql[B2: BoolLattice](n1: Sn, n2: Sn): B2 =
+                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else if (n1 == top || n2 == top) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(n1 == n2)
+
             
             
             val top: Sn = 
