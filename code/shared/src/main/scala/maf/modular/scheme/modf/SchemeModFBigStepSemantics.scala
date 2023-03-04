@@ -205,6 +205,7 @@ trait BigStepModFSemantics extends BigStepModFSemanticsT { outer =>
     trait BigStepModFIntra extends BigStepModFIntraT {
         // analysis entry point
         def analyzeWithTimeout(timeout: Timeout.T): Unit = // Timeout is just ignored here.
+
             eval(fnBody).run(fnEnv).foreach(res => writeResult(res))
     }
 

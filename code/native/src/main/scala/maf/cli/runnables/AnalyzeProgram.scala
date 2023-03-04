@@ -91,8 +91,8 @@ object AnalyzeProgram:
 
 
     def main(args: Array[String]): Unit = 
-            val a = runProgram(
-                "(define a #t) (define (test a b) (if (= a b) \"hello this is me\")) (test 5 5)", program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES))
+            val a = runAnalysis(
+                "test/test.rkt", program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES))
             )
             println(a)
             println(a.result)

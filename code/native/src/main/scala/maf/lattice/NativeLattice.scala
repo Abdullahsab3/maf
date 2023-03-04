@@ -10,6 +10,7 @@ import scalanative.unsigned.UnsignedRichInt
 
 import scalanative.unsafe._
 import scala.scalanative.unsigned.UByte
+import scala.collection.mutable.ListBuffer
 
 // Low-level implementation of the constant propagation implemenation.
 // prefixed with ll == low-level implementation
@@ -99,10 +100,10 @@ object NativeLattice:
     // First field: top (3), bottom (2), constant(1)
     // second field: pointer to the memory containing the string
     type Sn_struct = CStruct2[CInt, CString]
-    type Sn = Ptr[Sn_struct]
+    type S = Ptr[Sn_struct]
 
     type B = CInt
-    type S = L[String]
+   // type S = L[String]
     type I = L[BigInt]
     type R = L[Double]
     type C = L[Char]
@@ -149,9 +150,11 @@ object NativeLattice:
 
         // Ptr[CStruct2[CInt, CString]]
 
-         implicit val nativeStringCP: StringLattice[Sn] = new AbstractBaseInstance[Sn]("Str") with StringLattice[Sn] {
+         implicit val nativeStringCP: StringLattice[S] = new AbstractBaseInstance[S]("Str") with StringLattice[S] {
 
-            def join(x: Sn, y: => Sn): Sn =
+            val allocatedStrings: ListBuffer[S] = ListBuffer()
+
+            def join(x: S, y: => S): S =
                 // exhaust all the possibilities in order to know x and y are "constants" at the end
 
                 if(x == top || y == top) then top
@@ -160,7 +163,7 @@ object NativeLattice:
                 else if(x == y) then x
                 else top
 
-            def meet(x: Sn, y: => Sn): Sn = 
+            def meet(x: S, y: => S): S = 
                 if(x == bottom) then bottom
                 else if(y == bottom) then bottom
                 else if(x == top) then y
@@ -168,7 +171,7 @@ object NativeLattice:
                 else if(x == y) then x
                 else bottom
             
-            def subsumes(x: Sn, y: => Sn): Boolean =
+            def subsumes(x: S, y: => S): Boolean =
                 if(x == top) then true
                 else if(y == top) then false
                 else if(y == bottom) then true 
@@ -179,7 +182,7 @@ object NativeLattice:
               *
               * @param x
               */
-            def show(x: Sn): String =
+            def show(x: S): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
                 else fromCString(x._2)
@@ -191,24 +194,24 @@ object NativeLattice:
               * @param n2
               * @return
               */
-            def eql[B2: BoolLattice](n1: Sn, n2: Sn): B2 =
+            def eql[B2: BoolLattice](n1: S, n2: S): B2 =
                 if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
                 else if (n1 == top || n2 == top) then BoolLattice[B2].top
                 else BoolLattice[B2].inject(n1 == n2)
 
             
             
-            val top: Sn = 
-                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+            val top: S = 
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                 struct._1 = 3
                 struct
-            val bottom: Sn = 
-                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+            val bottom: S = 
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                 struct._1 = 2
                 struct
             
-            def inject(x: String): Sn =
-                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+            def inject(x: String): S =
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                 /**
                   * TODO: Deze variabele kan je gebruiken om de lengte van de string bij te houden!
                   * Op die manier moet je niet telkens opnieuw strlenen
@@ -225,18 +228,21 @@ object NativeLattice:
                     struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                     strcpy( struct._2, Cx)
                 }
+                allocatedStrings += struct
+                println("--------- ALLOCATED STRINGS ---------")
+                println(allocatedStrings)
                 struct
             
-            def length[I2: IntLattice](s: Sn): I2 = 
+            def length[I2: IntLattice](s: S): I2 = 
                 if(s == top) then IntLattice[I2].top
                 else if (s == bottom) then IntLattice[I2].bottom
                 else IntLattice[I2].inject(s._1)
 
-            def append(s1: Sn, s2: Sn): Sn = 
+            def append(s1: S, s2: S): S = 
                 if(s1 == top || s2 == top) then top
                 else if(s1 == bottom || s2 == bottom) then bottom
                 else 
-                    val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+                    val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                     val stringLength = s1._1 + s2._1
                     struct._1 = stringLength
                     struct._2 = malloc(stringLength.toULong).asInstanceOf[CString]
@@ -251,7 +257,7 @@ object NativeLattice:
                 
                 !(sub + i) = 0.toByte // 0-terminated string in C
                 
-            def substring[I2: IntLattice](s: Sn, from: I2, to: I2): Sn =
+            def substring[I2: IntLattice](s: S, from: I2, to: I2): S =
                 if(s == top) then top
                 else if(s == bottom) then bottom
                 else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
@@ -270,7 +276,7 @@ object NativeLattice:
                             to2 = i
                         if(from2 >= 0 && to2 >= 0) then
                             val substringLength = to2 - from2 + 1
-                            struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sn]
+                            struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                             struct._1 = 1
                             struct._2 = malloc(substringLength.toULong).asInstanceOf[CString]
                             getSubString(s._2, struct._2, from2, to2)
@@ -279,7 +285,7 @@ object NativeLattice:
                         i = i + 1
                     struct      
 
-            def ref[I2: IntLattice, C2: CharLattice](s: Sn, i: I2): C2 =
+            def ref[I2: IntLattice, C2: CharLattice](s: S, i: I2): C2 =
                 if(s == top) then CharLattice[C2].top
                 else if(s == bottom) then CharLattice[C2].bottom
                 else 
@@ -302,10 +308,10 @@ object NativeLattice:
                     charref
 
             def set[I2: IntLattice, C2: CharLattice](
-                s: Sn,
+                s: S,
                 i: I2,
                 c: C2
-              ): Sn =
+              ): S =
                 if(s == bottom) then bottom
                 else if (IntLattice[I2].isBottom(i) || CharLattice[C2].isBottom(c)) then bottom
                 else if(s == top) then top
@@ -314,21 +320,21 @@ object NativeLattice:
                     // This could probably be written better
                     !(s._2 + i.asInstanceOf[Int]) = c.asInstanceOf[CChar]
                     s
-            def lt[B2 : BoolLattice](s1: Sn, s2: Sn): B2 = 
+            def lt[B2 : BoolLattice](s1: S, s2: S): B2 = 
                 if(s1 == bottom || s2 == bottom) then BoolLattice[B2].bottom
                 else if(s1 == top || s2 == top) then BoolLattice[B2].top
                 else
                     val cmp = strcmp(s1._2, s2._2)
                     BoolLattice[B2].inject(cmp < 0)
 
-            def toSymbol[Sym2: SymbolLattice](s: Sn): Sym2 = 
+            def toSymbol[Sym2: SymbolLattice](s: S): Sym2 = 
                 if(s == top) then SymbolLattice[Sym2].top
                 else if(s == bottom) then SymbolLattice[Sym2].bottom
                 else 
                     val scalaS = fromCString(s._2)
                     SymbolLattice[Sym2].inject(scalaS)
 
-            def toNumber[I2: IntLattice](s: Sn) = 
+            def toNumber[I2: IntLattice](s: S) = 
                 if(s == bottom) then MayFail.success(IntLattice[I2].bottom)
                 else if(s == top) then MayFail.success(IntLattice[I2].top).addError(NotANumberString)
                 else
@@ -337,7 +343,7 @@ object NativeLattice:
                     else MayFail.success(IntLattice[I2].inject(BigInt(l.toInt)))
         } 
 
-        implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
+        /* implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
             def inject(x: String): S = Constant(x)
             def length[I2: IntLattice](s: S): I2 = s match
                 case Top         => IntLattice[I2].top
@@ -412,7 +418,7 @@ object NativeLattice:
                 case Top           => MayFail.success(IntLattice[I2].top).addError(NotANumberString)
             
             
-        }
+        } */
 
         implicit val intCP: IntLattice[I] = new BaseInstance[BigInt]("Int") with IntLattice[I] {
             def inject(x: BigInt): I = Constant(x)
