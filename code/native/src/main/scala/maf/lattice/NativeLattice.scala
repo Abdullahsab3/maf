@@ -150,6 +150,30 @@ object NativeLattice:
         // Ptr[CStruct2[CInt, CString]]
 
          implicit val nativeStringCP: StringLattice[Sn] = new AbstractBaseInstance[Sn]("Str") with StringLattice[Sn] {
+
+            def join(x: Sn, y: => Sn): Sn =
+                // exhaust all the possibilities in order to know x and y are "constants" at the end
+
+                if(x == top) then top
+                else if(y == top) then top
+                else if (y == bottom) then x
+                else if (x == bottom) then y
+                else if(x == y) then x
+                else top
+
+            def meet(x: Sn, y: => Sn): Sn = 
+                if(x == bottom) then bottom
+                else if(y == bottom) then bottom
+                else if(x == top) then y
+                else if(y == top) then x
+                else if(x == y) then x
+                else bottom
+            
+            def subsumes(x: Sn, y: => Sn): Boolean =
+                if(x == top) then true
+                else if(y == top) then false
+                else if(y == bottom) then true 
+                else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
             
             
             val top: Sn = 
@@ -290,6 +314,7 @@ object NativeLattice:
                     if(l == 0 && !(s._2) != 0.toChar) then MayFail.failure(NotANumberString)
                     else MayFail.success(IntLattice[I2].inject(BigInt(l.toInt)))
         } 
+
         implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
             def inject(x: String): S = Constant(x)
             def length[I2: IntLattice](s: S): I2 = s match
@@ -363,6 +388,8 @@ object NativeLattice:
                 case Bottom        => MayFail.success(IntLattice[I2].bottom)
                 case Constant(str) => MayFail.fromOption(NumOps.bigIntFromString(str).map(IntLattice[I2].inject))(NotANumberString)
                 case Top           => MayFail.success(IntLattice[I2].top).addError(NotANumberString)
+            
+            
         }
 
         implicit val intCP: IntLattice[I] = new BaseInstance[BigInt]("Int") with IntLattice[I] {
