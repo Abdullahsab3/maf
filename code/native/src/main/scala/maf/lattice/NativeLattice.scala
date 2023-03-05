@@ -36,7 +36,14 @@ object NativeLattice:
 
     case object Bottom extends L[Nothing]
       
-    abstract class AbstractBaseInstance[T](val typeName: String) extends Lattice[T]:
+    /**
+      * 
+      *
+      * @tparam E  the type of elements that you're willing to inject
+      * @tparam T  the type of the results of injection (i.e. the elements in the lattice)
+      */
+    abstract class AbstractBaseInstance[E, T](val typeName: String) extends Lattice[T]:
+        def inject(x: E): T
         def show(x: T): String
         val bottom: T
         val top: T
@@ -45,7 +52,7 @@ object NativeLattice:
         def subsumes(x: T, y: => T): Boolean
         def eql[B2: BoolLattice](n1: T, n2: T): B2
     
-    abstract class BaseInstance[A: Show](typeName: String) extends AbstractBaseInstance[L[A]](typeName):
+    abstract class BaseInstance[E, A: Show](typeName: String) extends AbstractBaseInstance[E, L[A]](typeName):
         def show(x: L[A]): String = x match
             case Top         => typeName
             case Constant(x) => x.toString
@@ -112,7 +119,7 @@ object NativeLattice:
     object L:
         def CInt2Boolean(i: B): Boolean = 
             i == 1
-        implicit val boolCP: BoolLattice[B] = new AbstractBaseInstance[B]("Bool") with BoolLattice[B] {
+        implicit val boolCP: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
             val top = 3
             val bottom = 2
             def inject(b: Boolean): B = if b then 1 else 0
@@ -150,7 +157,7 @@ object NativeLattice:
 
         // Ptr[CStruct2[CInt, CString]]
 
-         implicit val nativeStringCP: StringLattice[S] = new AbstractBaseInstance[S]("Str") with StringLattice[S] {
+         implicit val StringCP: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
 
             val allocatedStrings: ListBuffer[S] = ListBuffer()
 
@@ -226,11 +233,9 @@ object NativeLattice:
                 Zone {implicit z => 
                     val Cx: CString = toCString(x)
                     struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
-                    strcpy( struct._2, Cx)
+                    strcpy(struct._2, Cx)
                 }
                 allocatedStrings += struct
-                println("--------- ALLOCATED STRINGS ---------")
-                println(allocatedStrings)
                 struct
             
             def length[I2: IntLattice](s: S): I2 = 
@@ -343,84 +348,7 @@ object NativeLattice:
                     else MayFail.success(IntLattice[I2].inject(BigInt(l.toInt)))
         } 
 
-        /* implicit val stringCP: StringLattice[S] = new BaseInstance[String]("Str") with StringLattice[S] {
-            def inject(x: String): S = Constant(x)
-            def length[I2: IntLattice](s: S): I2 = s match
-                case Top         => IntLattice[I2].top
-                case Constant(s) => IntLattice[I2].inject(s.length)
-                case Bottom      => IntLattice[I2].bottom
-            def append(s1: S, s2: S): S = (s1, s2) match
-                case (Bottom, _) | (_, Bottom)  => Bottom
-                case (Top, _) | (_, Top)        => Top
-                case (Constant(x), Constant(y)) => Constant(x ++ y)
-            def substring[I2: IntLattice](
-                s: S,
-                from: I2,
-                to: I2
-              ): S = (s, from, to) match
-                case (Bottom, _, _)                                => Bottom
-                case (_, from, _) if IntLattice[I2].isBottom(from) => Bottom
-                case (_, _, to) if IntLattice[I2].isBottom(to)     => Bottom
-                case (Top, _, _)                                   => Top
-                case (Constant(s), from, to)                       =>
-                    // This is duplicated code from ConcreteLattice, it should be refactored
-                    (0.to(s.size)
-                        .collect({
-                            case from2 if BoolLattice[B].isTrue(IntLattice[I2].eql[B](from, IntLattice[I2].inject(from2))) =>
-                                (from2
-                                    .to(s.size)
-                                    .collect({
-                                        case to2 if BoolLattice[B].isTrue(IntLattice[I2].eql[B](to, IntLattice[I2].inject(to2))) =>
-                                            inject(s.substring(from2, to2).nn)
-                                    }))
-                        })
-                        .flatten)
-                        .foldLeft(bottom)((s1, s2) => join(s1, s2))
-            def ref[I2: IntLattice, C2: CharLattice](s: S, i: I2): C2 = s match
-                case Bottom      => CharLattice[C2].bottom
-                case Top         => CharLattice[C2].top
-                case Constant(x) =>
-                    // This is duplicated code from ConcreteLattice, it should be refactored
-                    0.to(x.length)
-                        .collect({
-                            case i2
-                                if BoolLattice[Concrete.B]
-                                    .isTrue(IntLattice[I2].eql[Concrete.B](i, IntLattice[I2].inject(i2))) &&
-                                    i2 < x.size =>
-                                CharLattice[C2].inject(x.charAt(i2))
-                        })
-                        .foldLeft(CharLattice[C2].bottom)((c1, c2) => CharLattice[C2].join(c1, c2))
-            def set[I2: IntLattice, C2: CharLattice](
-                s: S,
-                i: I2,
-                c: C2
-              ): S = s match
-                case Bottom                                                         => Bottom
-                case _ if IntLattice[I2].isBottom(i) || CharLattice[C2].isBottom(c) => Bottom
-                case Top                                                            => Top
-                case Constant(str) =>
-                    (i, c) match
-                        case (Constant(idx: BigInt), Constant(chr: Char)) => Constant(str.updated(idx.toInt, chr))
-                        // If neither the index or character are constant, don't even bother
-                        case _ => Top
-            def lt[B2: BoolLattice](s1: S, s2: S): B2 = (s1, s2) match
-                case (Bottom, _) | (_, Bottom)  => BoolLattice[B2].bottom
-                case (Top, _) | (_, Top)        => BoolLattice[B2].top
-                case (Constant(x), Constant(y)) => BoolLattice[B2].inject(x < y)
-            def toSymbol[Sym2: SymbolLattice](s: S): Sym2 = s match
-                case Bottom      => SymbolLattice[Sym2].bottom
-                case Top         => SymbolLattice[Sym2].top
-                case Constant(x) => SymbolLattice[Sym2].inject(x)
-
-            def toNumber[I2: IntLattice](s: S) = s match
-                case Bottom        => MayFail.success(IntLattice[I2].bottom)
-                case Constant(str) => MayFail.fromOption(NumOps.bigIntFromString(str).map(IntLattice[I2].inject))(NotANumberString)
-                case Top           => MayFail.success(IntLattice[I2].top).addError(NotANumberString)
-            
-            
-        } */
-
-        implicit val intCP: IntLattice[I] = new BaseInstance[BigInt]("Int") with IntLattice[I] {
+        implicit val intCP: IntLattice[I] = new BaseInstance[BigInt, BigInt]("Int") with IntLattice[I] {
             def inject(x: BigInt): I = Constant(x)
 
             def toReal[R2: RealLattice](n: I): R2 = n match
@@ -493,7 +421,7 @@ object NativeLattice:
                 case Bottom      => CharLattice[C2].bottom
         }
 
-        implicit val realCP: RealLattice[R] = new BaseInstance[Double]("Real") with RealLattice[R] {
+        implicit val realCP: RealLattice[R] = new BaseInstance[Double, Double]("Real") with RealLattice[R] {
             def inject(x: Double) = Constant(x)
             def toInt[I2: IntLattice](n: R): I2 = n match
                 case Top         => IntLattice[I2].top
@@ -569,7 +497,7 @@ object NativeLattice:
                 case Bottom      => StringLattice[S2].bottom
         }
 
-        implicit val charCP: CharLattice[C] = new BaseInstance[Char]("Char") with CharLattice[C] {
+        implicit val charCP: CharLattice[C] = new BaseInstance[Char, Char]("Char") with CharLattice[C] {
             def inject(x: Char) = Constant(x)
             def downCase(c: C): C = c match
                 case Constant(char) => Constant(char.toLower)
@@ -613,7 +541,7 @@ object NativeLattice:
                 case _ => BoolLattice[B2].top
         }
 
-        implicit val symCP: SymbolLattice[Sym] = new BaseInstance[String]("Symbol")(Show.symShow) with SymbolLattice[Sym] {
+        implicit val symCP: SymbolLattice[Sym] = new BaseInstance[String, String]("Symbol")(Show.symShow) with SymbolLattice[Sym] {
             def inject(x: String) = Constant(x)
             def toString[S2: StringLattice](s: Sym): S2 = s match
                 case Top         => StringLattice[S2].top

@@ -123,19 +123,9 @@ abstract class ModAnalysis[Expr <: Expression](val program: Expr) extends Clonea
 
         /** Pushes the local changes to the global analysis state. */
         def commit(): Unit =
-            println()
-            println("--------- R ----------")
-            println(R)
-            println("--------- W ----------")
-            println(W)
-            println("--------- C ----------")
-            println(C)
             R.foreach(inter.register(component, _))
             W.foreach(dep => if doWrite(dep) then inter.trigger(dep))
             C.foreach(inter.spawn(_, component))
-            println("-------- DEPS --------")
-            println(inter.deps)
-            println("--------- END --------")
 
         /** Called upon a commit for every written dependency. Returns a boolean indicating whether the global analysis state was modified. */
         def doWrite(dep: Dependency): Boolean = throw new Exception(s"Unknown dependency $dep") // `ModAnalysis` has no knowledge of dependencies it can commit.
