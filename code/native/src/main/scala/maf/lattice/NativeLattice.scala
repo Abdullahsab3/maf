@@ -110,8 +110,7 @@ object NativeLattice:
     type S = Ptr[Sn_struct]
 
     type B = CInt
-   // type S = L[String]
-    type I = L[BigInt]
+    type I = CInt
     type R = L[Double]
     type C = L[Char]
     type Sym = L[String]
@@ -338,77 +337,84 @@ object NativeLattice:
                     else MayFail.success(IntLattice[I2].inject(BigInt(l.toInt)))
         } 
 
-        implicit val intCP: IntLattice[I] = new BaseInstance[BigInt, BigInt]("Int") with IntLattice[I] {
-            def inject(x: BigInt): I = Constant(x)
+        implicit val intCP: IntLattice[I] = new AbstractBaseInstance[Int, I]("Int") with IntLattice[I] {
 
-            def toReal[R2: RealLattice](n: I): R2 = n match
-                case Top         => RealLattice[R2].top
-                case Constant(x) => RealLattice[R2].inject(x.toDouble)
-                case Bottom      => RealLattice[R2].bottom
+            val top: I = Int.MaxValue
 
-            def random(n: I): I = n match
-                case Bottom => Bottom
-                case _      => Top
+            val bottom: I = Int.MinValue
 
-            private def binop(
-                op: (BigInt, BigInt) => BigInt,
-                n1: I,
-                n2: I
-              ) = (n1, n2) match
-                case (Top, Top)                 => Top
-                case (Top, Constant(_))         => Top
-                case (Constant(_), Top)         => Top
-                case (Constant(x), Constant(y)) => Constant(op(x, y))
-                case _                          => Bottom
+            def join(x: I, y: => I): I =
+                // exhaust all the possibilities in order to know x and y are "constants" at the end
+
+                if(x == top || y == top) then top
+                else if (y == bottom) then x
+                else if (x == bottom) then y
+                else if(x == y) then x
+                else top
+
+            def inject(x: Int): I = x
+
+            def toReal[R2: RealLattice](n: I): R2 =
+                if(n == top) then RealLattice[R2].top
+                else if(n == bottom) then RealLattice[R2].top
+                else RealLattice[R2].inject(n.toDouble)
+
+            def random(n: I): I = 
+                if(n == bottom) then bottom
+                else top 
+
+            private def binop(op: (Int, Int) => Int, n1: I, n2: I) = 
+                if(n1 == top || n2 == top) then top
+                else if(n1 == bottom || n2 == bottom) then bottom
+                else op(n1, n2)
+
             def plus(n1: I, n2: I): I = binop(_ + _, n1, n2)
             def minus(n1: I, n2: I): I = binop(_ - _, n1, n2)
             def times(n1: I, n2: I): I = binop(_ * _, n1, n2)
-            def div[F: RealLattice](n1: I, n2: I): F = (n1, n2) match
-                case (Top, _) | (_, Top)                  => RealLattice[F].top
-                case (Constant(x), Constant(y)) if y != 0 => RealLattice[F].inject(bigIntToDouble(x) / bigIntToDouble(y))
-                // TODO: use MayFail here for when divide-by-zero occurs ...
-                case _ => RealLattice[F].bottom
-            def expt(n1: I, n2: I): I = binop((x, y) => Math.pow(x.toDouble, y.toDouble).toInt, n1, n2)
-            def quotient(n1: I, n2: I): I = binop(_ / _, n1, n2)
-            def modulo(n1: I, n2: I): I = (n1, n2) match
-                case (Top, Top)                           => Top
-                case (Top, Constant(_))                   => Top
-                case (Constant(_), Top)                   => Top
-                case (Constant(x), Constant(y)) if y != 0 => Constant(MathOps.modulo(x, y))
-                case _                                    => Bottom
-            def remainder(n1: I, n2: I): I = (n1, n2) match
-                case (Top, Top)                           => Top
-                case (Top, Constant(_))                   => Top
-                case (Constant(_), Top)                   => Top
-                case (Constant(x), Constant(y)) if y != 0 => Constant(MathOps.remainder(x, y))
-                case _                                    => Bottom
-            def lt[B2: BoolLattice](n1: I, n2: I): B2 = (n1, n2) match
-                case (Top, Top)                 => BoolLattice[B2].top
-                case (Top, Constant(_))         => BoolLattice[B2].top
-                case (Constant(_), Top)         => BoolLattice[B2].top
-                case (Constant(x), Constant(y)) => BoolLattice[B2].inject(x < y)
-                case _                          => BoolLattice[B2].bottom
-            def valuesBetween(n1: I, n2: I): Set[I] = (n1, n2) match
-                case (Top, _)                   => Set(Top)
-                case (_, Top)                   => Set(Top)
-                case (Constant(x), Constant(y)) => x.to(y).map(i => Constant(i)).toSet
-                case _                          => Set()
-            def makeString[C2: CharLattice, S2: StringLattice](length: I, char: C2): S2 = (length, char) match
-                case (Bottom, _)                               => StringLattice[S2].bottom
-                case (_, bot) if bot == CharLattice[C2].bottom => StringLattice[S2].bottom
-                case (Top, _)                                  => StringLattice[S2].top
-                case (Constant(n), _) =>
-                    val c = CharLattice[C2].toString[S2](char)
-                    1.to(NumOps.bigIntToInt(n)).foldLeft(StringLattice[S2].inject(""))((s, _) => StringLattice[S2].append(s, c))
+            def div[F: RealLattice](n1: I, n2: I): F = 
+                if(n1 == top || n2 == top) then RealLattice[F].top
+                else if (n1 == bottom || n2 == bottom) then RealLattice[F].bottom
+                else RealLattice[F].inject(n1.toDouble / n2.toDouble)
 
-            def toString[S2: StringLattice](n: I): S2 = n match
-                case Top         => StringLattice[S2].top
-                case Constant(x) => StringLattice[S2].inject(x.toString)
-                case Bottom      => StringLattice[S2].bottom
-            def toChar[C2: CharLattice](n: I): C2 = n match
-                case Top         => CharLattice[C2].top
-                case Constant(x) => CharLattice[C2].inject(NumOps.bigIntToInt(x).asInstanceOf[Char])
-                case Bottom      => CharLattice[C2].bottom
+            def expt(n1: I, n2: I): I = binop((x, y) => Math.pow(x.toDouble, y.toDouble).toInt, n1, n2)
+
+            def quotient(n1: I, n2: I): I = binop(_ / _, n1, n2)
+
+            def modulo(n1: I, n2: I): I = 
+                binop((x, y) => if (y == 0) then bottom else MathOps.modulo(x, y).toInt, n1 ,n2)
+                
+            def remainder(n1: I, n2: I): I = 
+                binop((x, y) => if(y == 0) then bottom else MathOps.remainder(x, y).toInt, n1 ,n2)
+
+            def lt[B2: BoolLattice](n1: I, n2: I): B2 = 
+                if(n1 == top || n2 == top) then BoolLattice[B2].top
+                else if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else BoolLattice[B2].inject(n1 < n2)
+
+            def valuesBetween(n1: I, n2: I): Set[I] = 
+                if(n1 == top || n2 == top) then Set(top)
+                else if(n1 == bottom || n2 == bottom) then Set()
+                else n1.to(n2).toSet
+
+            def makeString[C2: CharLattice, S2: StringLattice](length: I, char: C2): S2 =
+                if(length == bottom) then  StringLattice[S2].bottom
+                else if(CharLattice[C2].isBottom(char)) then StringLattice[S2].bottom
+                else if(char == CharLattice[C2].top) then StringLattice[S2].top
+                else if(length == top) then StringLattice[S2].top
+                else
+                   StringLattice[S2].inject(List.fill(length)(char).mkString)
+
+            def toString[S2: StringLattice](n: I): S2 = 
+                if(n == top) then StringLattice[S2].top
+                else if(n == bottom) then StringLattice[S2].bottom
+                else StringLattice[S2].inject(n.toString)
+
+
+            def toChar[C2: CharLattice](n: I): C2 = 
+                if(n == top) then CharLattice[C2].top
+                else if(n == bottom) then CharLattice[C2].bottom
+                else CharLattice[C2].inject(n.toChar)
+
         }
 
         implicit val realCP: RealLattice[R] = new BaseInstance[Double, Double]("Real") with RealLattice[R] {
