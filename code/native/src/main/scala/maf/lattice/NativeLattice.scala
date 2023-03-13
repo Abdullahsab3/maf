@@ -44,23 +44,52 @@ object NativeLattice:
       */
     abstract class AbstractBaseInstance[E, T](val typeName: String) extends Lattice[T]:
         def inject(x: E): T
-        def show(x: T): String
+        def show(x: T): String =
+            if(x == top) then typeName
+            else if(x == bottom) then s"$typeName.⊥"
+            else x.toString
+
         val bottom: T
         val top: T
-        def join(x: T, y: => T): T
-        def meet(x: T, y: => T): T
-        def subsumes(x: T, y: => T): Boolean
-        def eql[B2: BoolLattice](n1: T, n2: T): B2
+        def join(x: T, y: => T): T =
+            // exhaust all the possibilities in order to know x and y are "constants" at the end
+
+            if(x == top || y == top) then top
+            else if (y == bottom) then x
+            else if (x == bottom) then y
+            else if(x == y) then x
+            else top
+
+        def meet(x: T, y: => T): T = 
+            if(x == bottom) then bottom
+            else if(y == bottom) then bottom
+            else if(x == top) then y
+            else if(y == top) then x
+            else if(x == y) then x
+            else bottom
+
+        def subsumes(x: T, y: => T): Boolean =
+            if(x == top) then true
+            else if(y == top) then false
+            else if(y == bottom) then true 
+            else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
+
+        def eql[B2: BoolLattice](n1: T, n2: T): B2 =
+            if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+            else if (n1 == top || n2 == top) then BoolLattice[B2].top
+            else BoolLattice[B2].inject(n1 == n2)
+
+        
     
     abstract class BaseInstance[E, A: Show](typeName: String) extends AbstractBaseInstance[E, L[A]](typeName):
-        def show(x: L[A]): String = x match
+        override def show(x: L[A]): String = x match
             case Top         => typeName
             case Constant(x) => x.toString
             case Bottom      => s"$typeName.⊥"
         val bottom: L[A] = Bottom
         val top: L[A] = Top
         
-        def join(x: L[A], y: => L[A]): L[A] = x match
+        override def join(x: L[A], y: => L[A]): L[A] = x match
             case Top => Top
             case Constant(_) =>
                 y match
@@ -71,7 +100,7 @@ object NativeLattice:
                     case Bottom => x
             case Bottom => y
             
-        def meet(x: L[A], y: => L[A]): L[A] = x match
+        override def meet(x: L[A], y: => L[A]): L[A] = x match
             case Bottom => Bottom
             case Constant(_) =>
                 y match
@@ -83,7 +112,7 @@ object NativeLattice:
             case Top => y
 
 
-        def subsumes(x: L[A], y: => L[A]): Boolean = x match
+        override def subsumes(x: L[A], y: => L[A]): Boolean = x match
             case Top => true
             case Constant(_) =>
                 y match
@@ -96,7 +125,7 @@ object NativeLattice:
                     case Constant(_) => false
                     case Bottom      => true
 
-        def eql[B2: BoolLattice](n1: L[A], n2: L[A]): B2 = (n1, n2) match
+        override def eql[B2: BoolLattice](n1: L[A], n2: L[A]): B2 = (n1, n2) match
             case (Top, Top)                 => BoolLattice[B2].top
             case (Top, Constant(_))         => BoolLattice[B2].top
             case (Constant(_), Top)         => BoolLattice[B2].top
@@ -133,22 +162,22 @@ object NativeLattice:
             def not(b: B): B =
                 import boolLatticeOps.boolNot
                 boolNot(b) 
-            def join(x: B, y: => B): B =
+            override def join(x: B, y: => B): B =
                 import boolLatticeOps.boolJoin
                 boolJoin(x, y)
-            def meet(x: B, y: => B): B =
+            override def meet(x: B, y: => B): B =
                 import boolLatticeOps.boolMeet
                 boolMeet(x, y)
-            def subsumes(x: B, y: => B): Boolean =
+            override def subsumes(x: B, y: => B): Boolean =
                 import boolLatticeOps.boolSubsumes
                 val result = boolSubsumes(x, y)
                 CInt2Boolean(result)
-            def show(x: B): String =
+            override def show(x: B): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
                 else CInt2Boolean(x).toString
 
-            def eql[B2: BoolLattice](n1: B, n2: B): B2 =
+            override def eql[B2: BoolLattice](n1: B, n2: B): B2 =
                 if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
                 else if (n1 == top || n2 == top) then BoolLattice[B2].top
                 else BoolLattice[B2].inject(n1 == n2)
@@ -160,53 +189,11 @@ object NativeLattice:
 
             val allocatedStrings: ListBuffer[S] = ListBuffer()
 
-            def join(x: S, y: => S): S =
-                // exhaust all the possibilities in order to know x and y are "constants" at the end
-
-                if(x == top || y == top) then top
-                else if (y == bottom) then x
-                else if (x == bottom) then y
-                else if(x == y) then x
-                else top
-
-            def meet(x: S, y: => S): S = 
-                if(x == bottom) then bottom
-                else if(y == bottom) then bottom
-                else if(x == top) then y
-                else if(y == top) then x
-                else if(x == y) then x
-                else bottom
-            
-            def subsumes(x: S, y: => S): Boolean =
-                if(x == top) then true
-                else if(y == top) then false
-                else if(y == bottom) then true 
-                else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
-
-            /**
-              * TODO: refactor these procedures since they are probably similar across all lattices
-              *
-              * @param x
-              */
-            def show(x: S): String =
+            override def show(x: S): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
                 else fromCString(x._2)
-            
-            /**
-              * TODO: this too can be refactored, since this is just a bounded referential equality check
-              *
-              * @param n1
-              * @param n2
-              * @return
-              */
-            def eql[B2: BoolLattice](n1: S, n2: S): B2 =
-                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
-                else if (n1 == top || n2 == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 == n2)
 
-            
-            
             val top: S = 
                 val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                 struct._1 = 3
@@ -334,25 +321,16 @@ object NativeLattice:
                 else
                     val l =  atol(s._2)
                     if(l == 0 && !(s._2) != 0.toChar) then MayFail.failure(NotANumberString)
-                    else MayFail.success(IntLattice[I2].inject(BigInt(l.toInt)))
+                    else MayFail.success(IntLattice[I2].inject(l.toInt))
         } 
 
-        implicit val intCP: IntLattice[I] = new AbstractBaseInstance[Int, I]("Int") with IntLattice[I] {
+        implicit val intCP: IntLattice[I] = new AbstractBaseInstance[BigInt, I]("Int") with IntLattice[I] {
 
             val top: I = Int.MaxValue
 
             val bottom: I = Int.MinValue
 
-            def join(x: I, y: => I): I =
-                // exhaust all the possibilities in order to know x and y are "constants" at the end
-
-                if(x == top || y == top) then top
-                else if (y == bottom) then x
-                else if (x == bottom) then y
-                else if(x == y) then x
-                else top
-
-            def inject(x: Int): I = x
+            def inject(x: BigInt): I = x.toInt
 
             def toReal[R2: RealLattice](n: I): R2 =
                 if(n == top) then RealLattice[R2].top
