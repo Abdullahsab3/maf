@@ -266,51 +266,34 @@ object NativeLattice:
                 if(s == top) then top
                 else if(s == bottom) then bottom
                 else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
+                else if(from == IntLattice[I2].top || to == IntLattice[I2].top) then top
                 else
                     val stringLength = s._1
-                    var i = 0
-                    var from2 = -1
-                    var to2 = -1
+                    var from2 = from.asInstanceOf[Int]
+                    var to2 = to.asInstanceOf[Int]
                     var struct = top
-
-                    // whiles are more optimized in SN than for loops
-                    while(i < stringLength) do
-                        if BoolLattice[B].isTrue(IntLattice[I2].eql[B](from, IntLattice[I2].inject(i))) then
-                            from2 = i
-                        if BoolLattice[B].isTrue(IntLattice[I2].eql[B](to, IntLattice[I2].inject(i))) then
-                            to2 = i
-                        if(from2 >= 0 && to2 >= 0) then
-                            val substringLength = to2 - from2 + 1
-                            struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
-                            struct._1 = 1
-                            struct._2 = malloc(substringLength.toULong).asInstanceOf[CString]
-                            getSubString(s._2, struct._2, from2, to2)
-                            // breaks dont exist? no problem :p
-                            i = stringLength
-                        i = i + 1
-                    struct      
+                    if(from2 < stringLength && to2 < stringLength && from2 < to2) then
+                        val substringLength = to2 - from2 + 1
+                        struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
+                        struct._1 = 1
+                        struct._2 = malloc(substringLength.toULong).asInstanceOf[CString]
+                        getSubString(s._2, struct._2, from2, to2)
+                    struct 
 
             def ref[I2: IntLattice, C2: CharLattice](s: S, i: I2): C2 =
                 if(s == top) then CharLattice[C2].top
                 else if(s == bottom) then CharLattice[C2].bottom
+                else if(i == IntLattice[I2].top) then CharLattice[C2].top
+                else if(i == IntLattice[I2].bottom) then CharLattice[C2].bottom
                 else 
                     var c = 0
                     val stringLength = s._1
-                    var charref = CharLattice[C2].bottom
-                    /**
-                      * TODO: die while loops kunnen misschien anders
-                      * we zijn minder geinteresseerd in genericiteit,
-                      * dus mss generciteit verliezen ten koste van een betere performantie
-                      * en in plaats van te zoeken naar c, kunnen we mss gwn checken of het top/bottom/constant 
-                      * is in onze implementatie van de int lattice
-                      */
-                    while(c < stringLength) do
-                        if BoolLattice[B].isTrue(IntLattice[I2].eql[B](i, IntLattice[I2].inject(c))) && c < stringLength then
-                            val charInCString = !(s._2 + c)
-                            charref = CharLattice[C2].inject(charInCString.toChar)
-                            c = stringLength
-                        c = c + 1
-                    charref
+                    // this could probably be written better
+                    if(i.asInstanceOf[Int] < stringLength) then
+                        val charInCString = !(s._2 + c)
+                        CharLattice[C2].inject(charInCString.toChar)
+                    else
+                        CharLattice[C2].bottom
 
             def set[I2: IntLattice, C2: CharLattice](
                 s: S,
@@ -322,9 +305,16 @@ object NativeLattice:
                 else if(s == top) then top
                 else if (i == IntLattice[I2].top || c == CharLattice[C2].top) then top
                 else 
+
+                    val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
+                    val stringLength = s._1
+                    struct._1 = stringLength
+                    struct._2 = malloc(stringLength.toULong).asInstanceOf[CString]
+                    strcpy(struct._2, s._2)
                     // This could probably be written better
-                    !(s._2 + i.asInstanceOf[Int]) = c.asInstanceOf[CChar]
-                    s
+                    !(struct._2 + i.asInstanceOf[Int]) = c.asInstanceOf[CChar]
+                    struct
+
             def lt[B2 : BoolLattice](s1: S, s2: S): B2 = 
                 if(s1 == bottom || s2 == bottom) then BoolLattice[B2].bottom
                 else if(s1 == top || s2 == top) then BoolLattice[B2].top
