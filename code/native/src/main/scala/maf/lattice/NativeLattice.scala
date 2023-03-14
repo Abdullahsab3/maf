@@ -137,10 +137,9 @@ object NativeLattice:
     // second field: pointer to the memory containing the string
     type Sn_struct = CStruct2[CInt, CString]
     type S = Ptr[Sn_struct]
-
     type B = CInt
     type I = CInt
-    type R = L[Double]
+    type R = CDouble
     type C = L[Char]
     type Sym = L[String]
 
@@ -395,80 +394,91 @@ object NativeLattice:
 
         }
 
-        implicit val realCP: RealLattice[R] = new BaseInstance[Double, Double]("Real") with RealLattice[R] {
-            def inject(x: Double) = Constant(x)
-            def toInt[I2: IntLattice](n: R): I2 = n match
-                case Top         => IntLattice[I2].top
-                case Constant(x) => IntLattice[I2].inject(x.toInt)
-                case Bottom      => IntLattice[I2].bottom
-            def ceiling(n: R): R = n match
-                case Constant(x) => Constant(x.ceil)
-                case _           => n
-            def floor(n: R): R = n match
-                case Constant(x) => Constant(x.floor)
-                case _           => n
-            def round(n: R): R = n match
-                case Constant(x) => Constant(MathOps.round(x))
-                case _           => n
-            def random(n: R): R = n match
-                case Constant(_) => Top
-                case _           => n
-            def log(n: R): R = n match // Todo: use MayFail here or support imaginary numbers.
-                case Constant(x) if 0 <= x => Constant(scala.math.log(x))
-                case Top                   => Top
-                case _                     => Bottom
-            def sin(n: R): R = n match
-                case Constant(x) => Constant(scala.math.sin(x))
-                case _           => n
-            def asin(n: R): R = n match // TODO: use MayFail here for when x out of bounds
-                case Constant(x) if -1 <= x && x <= 1 => Constant(scala.math.asin(x))
-                case Top                              => Top
-                case _                                => Bottom
-            def cos(n: R): R = n match
-                case Constant(x) => Constant(scala.math.cos(x))
-                case _           => n
-            def acos(n: R): R = n match // TODO: use MayFail here for when x out of bounds
-                case Constant(x) if -1 <= x && x <= 1 => Constant(scala.math.acos(x))
-                case Top                              => Top
-                case _                                => Bottom
-            def tan(n: R): R = n match // TODO: use MayFail here for when x out of bounds
-                case Constant(x) =>
-                    scala.math.tan(x) match
-                        case Double.NaN => Bottom
-                        case n          => Constant(n)
-                case _ => n
-            def atan(n: R): R = n match
-                case Constant(x) => Constant(scala.math.atan(x))
-                case _           => n
-            def sqrt(n: R): R = n match // Todo: use MayFail here or support imaginary numbers.
-                case Constant(x) if 0 <= x => Constant(scala.math.sqrt(x))
-                case Top                   => Top
-                case _                     => Bottom
+        implicit val realCP: RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
+            def inject(x: Double) = x
+
+            def toInt[I2: IntLattice](n: R): I2 = 
+                if(n == top) then IntLattice[I2].top
+                else if(n == bottom) then IntLattice[I2].bottom
+                else IntLattice[I2].inject(n.toInt)
+
+            def ceiling(n: R): R =
+                if(n == top || n == bottom) then n
+                else scalanative.libc.math.ceil(n)
+
+            def floor(n: R): R = 
+                if(n == top || n == bottom) then n
+                else scalanative.libc.math.floor(n)
+
+            def round(n: R): R = 
+                if(n == top || n == bottom) then n
+                else MathOps.round(n)
+
+            def random(n: R): R = 
+                if(n == bottom) then bottom
+                else top
+
+            def log(n: R): R = 
+                if(n == top || n == bottom) then n
+                else if(n < 0) then 
+                    bottom
+                else
+                    scalanative.libc.math.log(n)
+
+            def sin(n: R): R =
+                if(n == top || n == bottom) then n
+                else scalanative.libc.math.sin(n)
+
+            def asin(n: R): R =
+                if(n == top || n == bottom) then n
+                else if(n > 1 || n < -1) then bottom
+                else asin(n)
+
+            def cos(n: R): R =
+                if(n == top || n == bottom) then n
+                else scalanative.libc.math.cos(n)
+
+            def acos(n: R): R = 
+                if(n == top || n == bottom) then n
+                else if(n > 1 || n < -1) then bottom
+                else scalanative.libc.math.acos(n)
+
+            def tan(n: R): R =
+                if(n == top || n == bottom) then n
+                else scalanative.libc.math.tan(n) // TODO this does not check safety. You should check on pi/2 as the tan would be undefined
+            def atan(n: R): R = 
+                if(n == top || n == bottom) then n
+                else scalanative.libc.math.atan(n)
+
+            def sqrt(n: R): R = 
+                if(n == top || n == bottom) then n
+                else if(n < 0) then bottom
+                else scalanative.libc.math.sqrt(n)
+
             private def binop(
                 op: (Double, Double) => Double,
                 n1: R,
                 n2: R
-              ) = (n1, n2) match
-                case (Top, Top)                 => Top
-                case (Top, Constant(_))         => Top
-                case (Constant(_), Top)         => Top
-                case (Constant(x), Constant(y)) => Constant(op(x, y))
-                case _                          => Bottom
+              ) = 
+                if(n1 == top || n2 == top) then top
+                else if (n1 == bottom || n2 == bottom) then bottom
+                else op(n1, n2)
+
             def plus(n1: R, n2: R): R = binop(_ + _, n1, n2)
             def minus(n1: R, n2: R): R = binop(_ - _, n1, n2)
             def times(n1: R, n2: R): R = binop(_ * _, n1, n2)
             def div(n1: R, n2: R): R = binop(_ / _, n1, n2)
             def expt(n1: R, n2: R): R = binop((x, y) => Math.pow(x, y), n1, n2)
-            def lt[B2: BoolLattice](n1: R, n2: R): B2 = (n1, n2) match
-                case (Top, Top)                 => BoolLattice[B2].top
-                case (Top, Constant(_))         => BoolLattice[B2].top
-                case (Constant(_), Top)         => BoolLattice[B2].top
-                case (Constant(x), Constant(y)) => BoolLattice[B2].inject(x < y)
-                case _                          => BoolLattice[B2].bottom
-            def toString[S2: StringLattice](n: R): S2 = n match
-                case Top         => StringLattice[S2].top
-                case Constant(x) => StringLattice[S2].inject(x.toString)
-                case Bottom      => StringLattice[S2].bottom
+            def lt[B2: BoolLattice](n1: R, n2: R): B2 = 
+                if(n1 == top || n2 == top) then BoolLattice[B2].top
+                else if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else BoolLattice[B2].inject(n1 < n2)
+                
+            def toString[S2: StringLattice](n: R): S2 =
+                if(n == top) then StringLattice[S2].top
+                else if (n == bottom) then StringLattice[S2].bottom
+                else StringLattice[S2].inject(n.toString)
+                
         }
 
         implicit val charCP: CharLattice[C] = new BaseInstance[Char, Char]("Char") with CharLattice[C] {
