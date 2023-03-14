@@ -6,6 +6,7 @@ import maf.lattice.interfaces._
 import NumOps._
 import scala.scalanative.libc.stdlib.{malloc, free, atol}
 import scala.scalanative.libc.string.{strlen, strcpy, strcat, strcmp}
+import scala.scalanative.libc.ctype.{tolower, toupper, islower, isupper}
 import scalanative.unsigned.UnsignedRichInt
 
 import scalanative.unsafe._
@@ -140,7 +141,7 @@ object NativeLattice:
     type B = CInt
     type I = CInt
     type R = CDouble
-    type C = L[Char]
+    type C = CInt
     type Sym = L[String]
 
     object L:
@@ -395,6 +396,10 @@ object NativeLattice:
         }
 
         implicit val realCP: RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
+            
+            val top = Double.MaxValue
+            val bottom = Double.MinValue
+
             def inject(x: Double) = x
 
             def toInt[I2: IntLattice](n: R): I2 = 
@@ -481,48 +486,65 @@ object NativeLattice:
                 
         }
 
-        implicit val charCP: CharLattice[C] = new BaseInstance[Char, Char]("Char") with CharLattice[C] {
-            def inject(x: Char) = Constant(x)
-            def downCase(c: C): C = c match
-                case Constant(char) => Constant(char.toLower)
-                case _              => c
-            def upCase(c: C): C = c match
-                case Constant(char) => Constant(char.toUpper)
-                case _              => c
-            def toString[S2: StringLattice](c: C): S2 = c match
-                case Top            => StringLattice[S2].top
-                case Constant(char) => StringLattice[S2].inject(char.toString)
-                case Bottom         => StringLattice[S2].bottom
-            def toInt[I2: IntLattice](c: C): I2 = c match
-                case Bottom      => IntLattice[I2].bottom
-                case Constant(c) => IntLattice[I2].inject(c.toInt)
-                case Top         => IntLattice[I2].top
-            def isLower[B2: BoolLattice](c: C): B2 = c match
-                case Bottom         => BoolLattice[B2].bottom
-                case Constant(char) => BoolLattice[B2].inject(char.isLower)
-                case Top            => BoolLattice[B2].top
-            def isUpper[B2: BoolLattice](c: C): B2 = c match
-                case Bottom         => BoolLattice[B2].bottom
-                case Constant(char) => BoolLattice[B2].inject(char.isUpper)
-                case Top            => BoolLattice[B2].top
-            override def charEq[B2: BoolLattice](c1: C, c2: C): B2 = (c1, c2) match
-                case (Bottom, _) | (_, Bottom)    => BoolLattice[B2].bottom
-                case (Constant(c1), Constant(c2)) => BoolLattice[B2].inject(c1 == c2)
-                case _                            => BoolLattice[B2].top
-            override def charLt[B2: BoolLattice](c1: C, c2: C): B2 = (c1, c2) match
-                case (Bottom, _) | (_, Bottom)    => BoolLattice[B2].bottom
-                case (Constant(c1), Constant(c2)) => BoolLattice[B2].inject(c1 < c2)
-                case _                            => BoolLattice[B2].top
-            override def charEqCI[B2: BoolLattice](c1: C, c2: C): B2 = (c1, c2) match
-                case (Bottom, _) | (_, Bottom) => BoolLattice[B2].bottom
-                case (Constant(c1), Constant(c2)) =>
-                    BoolLattice[B2].inject(c1.toUpper == c2.toUpper) // TODO implement better (see note in concrete lattice)
-                case _ => BoolLattice[B2].top
-            override def charLtCI[B2: BoolLattice](c1: C, c2: C): B2 = (c1, c2) match
-                case (Bottom, _) | (_, Bottom) => BoolLattice[B2].bottom
-                case (Constant(c1), Constant(c2)) =>
-                    BoolLattice[B2].inject(c1.toUpper < c2.toUpper) // TODO implement better (see note in concrete lattice)
-                case _ => BoolLattice[B2].top
+        implicit val charCP: CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
+            
+            val top: C = Int.MaxValue
+            val bottom: C = Int.MinValue
+            
+            def inject(x: Char) = x.toInt
+
+            def downCase(c: C): C =
+                if(c == top || c == bottom) then c
+                else tolower(c)
+
+            def upCase(c: C): C = 
+                if(c == top || c == bottom) then c
+                else toupper(c)
+
+            def toString[S2: StringLattice](c: C): S2 = 
+                if(c == top) then StringLattice[S2].top
+                else if (c == bottom) then StringLattice[S2].bottom
+                else StringLattice[S2].inject(c.toString)
+
+            def toInt[I2: IntLattice](c: C): I2 = c.asInstanceOf[I2] // TODO: change later. make I2 maybe IntLattice[I]
+
+            def isLower[B2: BoolLattice](c: C): B2 = 
+                if(c == bottom) then BoolLattice[B2].bottom
+                else if(c == top) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(islower(c) == 1)
+
+            def isUpper[B2: BoolLattice](c: C): B2 =
+
+                if(c == bottom) then BoolLattice[B2].bottom
+                else if(c == top) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(isupper(c) == 1)
+
+
+            override def charEq[B2: BoolLattice](c1: C, c2: C): B2 = 
+                if(c1 == top || c2 == top) then BoolLattice[B2].top
+                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+                else BoolLattice[B2].inject(c1 == c2)
+
+
+            override def charLt[B2: BoolLattice](c1: C, c2: C): B2 = 
+
+                if(c1 == top || c2 == top) then BoolLattice[B2].top
+                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+                else BoolLattice[B2].inject(c1 < c2)
+
+
+            override def charEqCI[B2: BoolLattice](c1: C, c2: C): B2 = 
+
+                if(c1 == top || c2 == top) then BoolLattice[B2].top
+                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+                else BoolLattice[B2].inject(toupper(c1) == toupper(c2))
+
+                
+            override def charLtCI[B2: BoolLattice](c1: C, c2: C): B2 = 
+
+                if(c1 == top || c2 == top) then BoolLattice[B2].top
+                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+                else BoolLattice[B2].inject(toupper(c1) < toupper(c2))
         }
 
         implicit val symCP: SymbolLattice[Sym] = new BaseInstance[String, String]("Symbol")(Show.symShow) with SymbolLattice[Sym] {
