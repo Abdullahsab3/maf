@@ -142,7 +142,7 @@ object NativeLattice:
     type I = CInt
     type R = CDouble
     type C = CInt
-    type Sym = L[String]
+    type Sym = Ptr[Sn_struct]
 
     object L:
         def CInt2Boolean(i: B): Boolean = 
@@ -547,10 +547,46 @@ object NativeLattice:
                 else BoolLattice[B2].inject(toupper(c1) < toupper(c2))
         }
 
-        implicit val symCP: SymbolLattice[Sym] = new BaseInstance[String, String]("Symbol")(Show.symShow) with SymbolLattice[Sym] {
-            def inject(x: String) = Constant(x)
-            def toString[S2: StringLattice](s: Sym): S2 = s match
-                case Top         => StringLattice[S2].top
-                case Constant(x) => StringLattice[S2].inject(x)
-                case Bottom      => StringLattice[S2].bottom
+        // TODO: symshow
+        implicit val symCP: SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
+            
+            val top: Sym = 
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
+                struct._1 = 3
+                struct
+            val bottom: Sym = 
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
+                struct._1 = 2
+                struct
+
+            def inject(x: String) = 
+                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[Sym]
+                /**
+                  * TODO: Deze variabele kan je gebruiken om de lengte van de string bij te houden!
+                  * Op die manier moet je niet telkens opnieuw strlenen
+                  */
+                val stringLength = x.length()
+                struct._1 = stringLength
+                /**
+                  * TODO: dit kan zeker beter:
+                    In plaats van de ingebouwde toCString te gebruiken,
+                    zet de string om naar bytes; e.g.: (str + 0.toChar).getBytes().at(0)
+                  */
+                Zone {implicit z => 
+                    val Cx: CString = toCString(x)
+                    struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
+                    strcpy(struct._2, Cx)
+                }
+                
+                struct
+            def toString[S2: StringLattice](s: Sym): S2 = 
+                if(s == top) then StringLattice[S2].top
+                else if(s == bottom) then StringLattice[S2].bottom
+                else StringLattice[S2].inject(fromCString(s._2))
+
+            override def show(x: Sym): String =
+                if(x == top) then typeName
+                else if(x == bottom) then s"$typeName.⊥"
+                else fromCString(x._2)
+
         }
