@@ -220,8 +220,9 @@ object NativeLattice:
                 struct
                 
             def append(s1: S, s2: S): S = 
-                if(s1 == top || s2 == top) then top
-                else if(s1 == bottom || s2 == bottom) then bottom
+
+                if(s1 == bottom || s2 == bottom) then bottom
+                else if(s1 == top || s2 == top) then top
                 else if(s1._1 == 0) then copyS(s2)
                 else if(s2._1 == 0) then copyS(s1)
                 else 

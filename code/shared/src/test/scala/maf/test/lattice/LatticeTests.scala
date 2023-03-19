@@ -123,10 +123,11 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
 
 
             /** Append preserves bottom */
-/*             p.property("∀ a: append(a, ⊥) = ⊥ = append(⊥, a)") = 
+             p.property("∀ a: append(a, ⊥) = ⊥ = append(⊥, a)") = 
                 forAll(
                     (a: S) => 
-                        append(bottom, a) == bottom && append(a, bottom) == bottom) */
+                        println(show(a))
+                        append(bottom, a) == bottom && append(a, bottom) == bottom)
 
             /** Append is monotone */
             p.property("∀ a, b, c: a ⊑ b ⇒ append(a, c) ⊑ append(b, c) ∧ append(c, a) ⊑ append(c, b)") = forAll { (b: S, c: S) =>
