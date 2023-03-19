@@ -19,5 +19,5 @@ abstract class NativeGenerator[E, X](gen: Gen[E])(implicit lat: AbstractBaseInst
     else if l == lat.bottom then { botgen }
     else { Gen.oneOf(l, lat.bottom) }
 
-object NativeStringGenerator extends NativeGenerator[String, NativeLattice.S](Generators.str)(StringCP)
+object NativeStringGenerator extends NativeGenerator[String, NativeLattice.S](Generators.str)(StringLL)
 

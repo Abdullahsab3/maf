@@ -39,9 +39,23 @@ object NativeLattice:
     type C = CInt
     type Sym = Ptr[Sn_struct]
 
+    def cstrEquals(s1 : CString, s2: CString, l1: Int, l2: Int): Boolean =
+        var results = true
+        if(l1 == l2) then
+            var i = 0
+            while(i < l2) do
+                if(!(s1 + i) != !(s2 + i)) then 
+                    results = false
+                    i = l2 // break
+                i = i + 1
+        else 
+            results = false
+        results
+
     implicit class SOps(val s: S):
+        @inline
         final def ==(that: S): Boolean =
-            s._1 == that._1 && strcmp(s._2, that._2) == 0
+            cstrEquals(s._2, that._2, s._1, that._1)
             
 
 
@@ -80,6 +94,7 @@ object NativeLattice:
             else bottom
 
         def subsumes(x: T, y: => T): Boolean =
+
             if(x == top) then true
             else if(y == top) then false
             else if(y == bottom) then true 
@@ -95,7 +110,7 @@ object NativeLattice:
     object L:
         def CInt2Boolean(i: B): Boolean = 
             i == 1
-        implicit val boolCP: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
+        implicit val boolLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
             val top = 3
             val bottom = 2
             def inject(b: Boolean): B = if b then 1 else 0
@@ -133,18 +148,21 @@ object NativeLattice:
 
         // Ptr[CStruct2[CInt, CString]]
 
-        implicit val StringCP: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
+        implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
 
             val allocatedStrings: ListBuffer[S] = ListBuffer()
 
+
             // TODO: maybe you can change the representation of top and bottom
             // by having negative numbers, and when comparing against these numbers itd fail
+
+            // TODO refactor. you can do a lot better than this.
             override def subsumes(x: S, y: => S): Boolean =
                 if(x == top) then true
                 else if(y == top) then false
                 else if(y == bottom) then true 
                 else if(x == bottom) then false
-                else x._1 == y._1 && strcmp(x._2, y._2) == 0
+                else cstrEquals(x._2, y._2, x._1, y._1)
 
             private def strcpy(dest: CString, src: CString, length: Int): Unit =
                 var i = 0
@@ -153,7 +171,7 @@ object NativeLattice:
                     i = i + 1
 
             private def strcat(dest: CString, src: CString, destlength: Int, srclength: Int): Unit = 
-                var i = destlength
+                var i = destlength + 1
                 while(i <= srclength) do
                     !(dest + i) = !(src + i - destlength)
                     i = i + 1
@@ -182,10 +200,9 @@ object NativeLattice:
                 struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                 val str : Array[Byte] = (x + 0.toChar).getBytes().nn
                 var i = 0
-                while(i < stringLength + 1) do
+                while(i <= stringLength) do
                     !(struct._2 + i) = str(i)
                     i = i +1
-
                 //allocatedStrings += struct
                 struct
             
@@ -299,7 +316,7 @@ object NativeLattice:
                     else MayFail.success(IntLattice[I2].inject(l.toInt))
         } 
 
-        implicit val intCP: IntLattice[I] = new AbstractBaseInstance[BigInt, I]("Int") with IntLattice[I] {
+        implicit val intLL: IntLattice[I] = new AbstractBaseInstance[BigInt, I]("Int") with IntLattice[I] {
 
             val top: I = Int.MaxValue
 
@@ -370,7 +387,7 @@ object NativeLattice:
 
         }
 
-        implicit val realCP: RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
+        implicit val realLL: RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
             
             val top = Double.MaxValue
             val bottom = Double.MinValue
@@ -461,7 +478,7 @@ object NativeLattice:
                 
         }
 
-        implicit val charCP: CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
+        implicit val charLL: CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
             
             val top: C = Int.MaxValue
             val bottom: C = Int.MinValue
@@ -523,7 +540,7 @@ object NativeLattice:
         }
 
         // TODO: symshow
-        implicit val symCP: SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
+        implicit val symLL: SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
             
             val top: Sym = 
                 val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]

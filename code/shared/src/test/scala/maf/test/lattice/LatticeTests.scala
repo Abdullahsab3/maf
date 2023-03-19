@@ -8,6 +8,8 @@ import maf.core.Lattice
 import maf.lattice._
 import maf.lattice.interfaces.{BoolLattice, CharLattice, IntLattice, RealLattice, StringLattice, SymbolLattice}
 import maf.test.LatticeTest
+import scalanative.unsafe._
+
 
 /** TODO[medium] tests for scheme lattice */
 
@@ -136,10 +138,20 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
             /** Append is sound */
             p.property("∀ a, b: append(inject(a), inject(b)) ⊑ inject(a ++ b)") =
                 forAll((a: String, b: String) => 
-                    subsumes(append(inject(a), inject(b)), inject(a ++ b)))
+                    val c = append(inject(a), inject(b))
+                    val d = inject(a++b)
+ /*                        println("-------- START -----------")
+                        println(s"a: ${a}, b: ${a}, a++b: ${a++b}")
+                        print(show(c))
+                        print(" ------- ")
+                        println(show(d))
+                        println(s"SUBSUMPTION: ${subsumes(c, d)}")
+                        println("--------- END ------------") */
+                    subsumes(c, d))
 
             /** Append is associative */
             p.property("∀ a, b, c: append(append(a, b), c) == append(a, append(b, c))") =
+                
                 forAll((a: S, b: S, c: S) => append(append(a, b), c) == append(a, append(b, c)))
 
             p
