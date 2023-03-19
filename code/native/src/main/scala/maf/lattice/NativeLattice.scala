@@ -236,7 +236,7 @@ object NativeLattice:
                     val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                     val stringLength = s1._1 + s2._1
                     struct._1 = stringLength
-                    struct._2 = malloc(stringLength.toULong).asInstanceOf[CString]
+                    struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                     strcpy(struct._2, s1._2)
                     strcat(struct._2, s2._2)
                     struct
@@ -262,7 +262,7 @@ object NativeLattice:
                         val substringLength = to2 - from2 + 1
                         struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                         struct._1 = 1
-                        struct._2 = malloc(substringLength.toULong).asInstanceOf[CString]
+                        struct._2 = malloc(substringLength.toULong + 1.toULong).asInstanceOf[CString]
                         getSubString(s._2, struct._2, from2, to2)
                     struct 
 
@@ -295,7 +295,7 @@ object NativeLattice:
                     val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                     val stringLength = s._1
                     struct._1 = stringLength
-                    struct._2 = malloc(stringLength.toULong).asInstanceOf[CString]
+                    struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                     strcpy(struct._2, s._2)
                     // This could probably be written better
                     !(struct._2 + i.asInstanceOf[Int]) = c.asInstanceOf[CChar]
