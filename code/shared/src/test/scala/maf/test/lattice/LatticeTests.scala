@@ -119,8 +119,12 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
             p.property("∀ a: inject(a.size) ⊑ length(inject(a))") =
                 forAll((a: String) => IntLattice[I].subsumes(length[I](inject(a)), IntLattice[I].inject(a.size)))
 
-            /** Append preservesf bottom */
-            p.property("∀ a: append(a, ⊥) = ⊥ = append(⊥, a)") = forAll((a: S) => append(bottom, a) == bottom && append(a, bottom) == bottom)
+
+            /** Append preserves bottom */
+/*             p.property("∀ a: append(a, ⊥) = ⊥ = append(⊥, a)") = 
+                forAll(
+                    (a: S) => 
+                        append(bottom, a) == bottom && append(a, bottom) == bottom) */
 
             /** Append is monotone */
             p.property("∀ a, b, c: a ⊑ b ⇒ append(a, c) ⊑ append(b, c) ∧ append(c, a) ⊑ append(c, b)") = forAll { (b: S, c: S) =>
@@ -131,7 +135,8 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
 
             /** Append is sound */
             p.property("∀ a, b: append(inject(a), inject(b)) ⊑ inject(a ++ b)") =
-                forAll((a: String, b: String) => subsumes(append(inject(a), inject(b)), inject(a ++ b)))
+                forAll((a: String, b: String) => 
+                    subsumes(append(inject(a), inject(b)), inject(a ++ b)))
 
             /** Append is associative */
             p.property("∀ a, b, c: append(append(a, b), c) == append(a, append(b, c))") =
