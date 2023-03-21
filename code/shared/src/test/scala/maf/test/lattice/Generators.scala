@@ -12,7 +12,7 @@ trait LatticeGenerator[L]:
     implicit val shrink: Shrink[L] = Shrink(v => Stream.empty)
 
 object Generators:
-    val str: Gen[String] = Gen.resize(10, Gen.oneOf(Gen.identifier, Gen.alphaStr, Gen.numStr))
+    val str: Gen[String] = Gen.resize(10, Gen.asciiStr)
     val int: Gen[BigInt] = Gen.choose(-1000, 1000)
     val double: Gen[Double] = Gen.choose(-1000.0, 1000.0)
     val char: Gen[Char] = Gen.choose(0.toChar, 255.toChar)

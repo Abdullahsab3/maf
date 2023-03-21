@@ -7,27 +7,27 @@ const int bottom = 2;
 const int top = 3;
 
 
-int isConstant(int b)
+uint8_t isConstant(uint8_t b)
 {
     return b < 2;
 }
 
-int boolIsTrue(int b)
+uint8_t boolIsTrue(uint8_t b)
 {
     return b & 1;
 }
 
-int boolIsFalse(int b)
+uint8_t boolIsFalse(uint8_t b)
 {
     return isConstant(b) ? !b : b & 1;
 }
 
-int boolNot(int b)
+uint8_t boolNot(uint8_t b)
 {
     return isConstant(b) ? !b : b;
 }
 
-int boolJoin(int a, int b)
+uint8_t boolJoin(uint8_t a, uint8_t b)
 {
     // a is bottom element
     if (a == bottom)
@@ -51,7 +51,7 @@ int boolJoin(int a, int b)
     return a == b ? a : top;
 }
 
-int boolMeet(int a, int  b) {
+uint8_t boolMeet(uint8_t a, uint8_t  b) {
     if(a == top) {
         return b;
     }
@@ -66,7 +66,7 @@ int boolMeet(int a, int  b) {
     return a == b ? a : bottom;
 }
 
-int boolSubsumes(int a, int b) {
+uint8_t boolSubsumes(uint8_t a, uint8_t b) {
     if(a == top || b == bottom) {
         return true;
     }

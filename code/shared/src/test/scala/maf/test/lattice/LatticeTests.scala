@@ -126,7 +126,6 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
              p.property("∀ a: append(a, ⊥) = ⊥ = append(⊥, a)") = 
                 forAll(
                     (a: S) => 
-                        println(show(a))
                         append(bottom, a) == bottom && append(a, bottom) == bottom)
 
             /** Append is monotone */
@@ -139,15 +138,9 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
             /** Append is sound */
             p.property("∀ a, b: append(inject(a), inject(b)) ⊑ inject(a ++ b)") =
                 forAll((a: String, b: String) => 
+                    println(s"a: \"${a}\", b: \"${b}\"")
                     val c = append(inject(a), inject(b))
                     val d = inject(a++b)
- /*                        println("-------- START -----------")
-                        println(s"a: ${a}, b: ${a}, a++b: ${a++b}")
-                        print(show(c))
-                        print(" ------- ")
-                        println(show(d))
-                        println(s"SUBSUMPTION: ${subsumes(c, d)}")
-                        println("--------- END ------------") */
                     subsumes(c, d))
 
             /** Append is associative */

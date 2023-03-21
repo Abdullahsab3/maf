@@ -18,13 +18,13 @@ import scala.collection.mutable.ListBuffer
 
 // Boollattice 
 @extern object boolLatticeOps:
-    def boolIsTrue(b: CInt): CInt = extern
-    def boolIsFalse(b: CInt): CInt = extern
-    def boolNot(b: CInt): CInt = extern
+    def boolIsTrue(b: CChar): CChar = extern
+    def boolIsFalse(b: CChar): CChar = extern
+    def boolNot(b: CChar): CChar = extern
     
-    def boolJoin(a: CInt, b: CInt): CInt = extern
-    def boolMeet(a: CInt, b: CInt): CInt = extern
-    def boolSubsumes(a: CInt, b: CInt): CInt = extern
+    def boolJoin(a: CChar, b: CChar): CChar = extern
+    def boolMeet(a: CChar, b: CChar): CChar = extern
+    def boolSubsumes(a: CChar, b: CChar): CChar = extern
 
 
 object NativeLattice:
@@ -33,7 +33,7 @@ object NativeLattice:
     // second field: pointer to the memory containing the string
     type Sn_struct = CStruct2[CInt, CString]
     type S = Ptr[Sn_struct]
-    type B = CInt
+    type B = CChar
     type I = CInt
     type R = CDouble
     type C = CInt
@@ -109,10 +109,46 @@ object NativeLattice:
 
     object L:
         def CInt2Boolean(i: B): Boolean = 
-            i == 1
+            i == 1.toChar
         implicit val boolLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
             val top = 3
             val bottom = 2
+            def inject(b: Boolean): B = if b then 1 else 0
+            def isTrue(b: B): Boolean = 
+                import boolLatticeOps.boolIsTrue
+                val result = boolIsTrue(b)
+                CInt2Boolean(result)
+            def isFalse(b: B): Boolean =
+                import boolLatticeOps.boolIsFalse
+                val result = boolIsFalse(b)
+                CInt2Boolean(result)
+            def not(b: B): B =
+                import boolLatticeOps.boolNot
+                boolNot(b) 
+            override def join(x: B, y: => B): B =
+                import boolLatticeOps.boolJoin
+                boolJoin(x, y)
+            override def meet(x: B, y: => B): B =
+                import boolLatticeOps.boolMeet
+                boolMeet(x, y)
+            override def subsumes(x: B, y: => B): Boolean =
+                import boolLatticeOps.boolSubsumes
+                val result = boolSubsumes(x, y)
+                CInt2Boolean(result)
+            override def show(x: B): String =
+                if(x == top) then typeName
+                else if(x == bottom) then s"$typeName.⊥"
+                else CInt2Boolean(x).toString
+
+            override def eql[B2: BoolLattice](n1: B, n2: B): B2 =
+                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else if (n1 == top || n2 == top) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(n1 == n2)
+        }
+
+        implicit val boolSNLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
+            val top = 3.toByte
+            val bottom = 2.toByte
             def inject(b: Boolean): B = if b then 1 else 0
             def isTrue(b: B): Boolean = 
                 import boolLatticeOps.boolIsTrue
@@ -223,12 +259,14 @@ object NativeLattice:
 
                 if(s1 == bottom || s2 == bottom) then bottom
                 else if(s1 == top || s2 == top) then top
-                else if(s1._1 == 0) then copyS(s2)
-                else if(s2._1 == 0) then copyS(s1)
+                else if(s1._1 == 0) then 
+                    copyS(s2)
+                else if(s2._1 == 0) then 
+                    copyS(s1)
                 else 
                     val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                     val stringLength = s1._1 + s2._1
-                    struct._1 = stringLength
+                    struct._1 = stringLength  
                     struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                     strcpy(struct._2, s1._2, s1._1)
                     strcat(struct._2, s2._2, s1._1, s2._1)
