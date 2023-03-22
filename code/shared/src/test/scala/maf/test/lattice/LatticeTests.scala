@@ -137,8 +137,8 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
 
             /** Append is sound */
             p.property("∀ a, b: append(inject(a), inject(b)) ⊑ inject(a ++ b)") =
-                forAll((a: String, b: String) => 
-                    println(s"a: \"${a}\", b: \"${b}\"")
+                Prop.forAll(Generators.str, Generators.str)((a: String, b: String) =>
+                  //  println(s"a: \"${a}\", length: ${a.length()}, b: \"${b}\", length: ${b.length()}")
                     val c = append(inject(a), inject(b))
                     val d = inject(a++b)
                     subsumes(c, d))

@@ -146,7 +146,7 @@ object NativeLattice:
                 else BoolLattice[B2].inject(n1 == n2)
         }
 
-        implicit val boolSNLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
+ /*        implicit val boolSNLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
             val top = 3.toByte
             val bottom = 2.toByte
             def inject(b: Boolean): B = if b then 1 else 0
@@ -163,7 +163,7 @@ object NativeLattice:
                 boolNot(b) 
             override def join(x: B, y: => B): B =
                 import boolLatticeOps.boolJoin
-                boolJoin(x, y)
+                boolJoin(x, y)  
             override def meet(x: B, y: => B): B =
                 import boolLatticeOps.boolMeet
                 boolMeet(x, y)
@@ -181,7 +181,7 @@ object NativeLattice:
                 else if (n1 == top || n2 == top) then BoolLattice[B2].top
                 else BoolLattice[B2].inject(n1 == n2)
         }
-
+ */
         // Ptr[CStruct2[CInt, CString]]
 
         implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
@@ -200,15 +200,17 @@ object NativeLattice:
                 else if(x == bottom) then false
                 else cstrEquals(x._2, y._2, x._1, y._1)
 
+            // assuming sufficient memory is allocated at dest
             private def strcpy(dest: CString, src: CString, length: Int): Unit =
                 var i = 0
                 while(i <= length) do
                     !(dest + i) = !(src + i)
                     i = i + 1
 
+            // assuming sufficient memory is allcoated at dest
             private def strcat(dest: CString, src: CString, destlength: Int, srclength: Int): Unit = 
-                var i = destlength + 1
-                while(i <= srclength) do
+                var i = destlength
+                while(i <= srclength + destlength) do
                     !(dest + i) = !(src + i - destlength)
                     i = i + 1
 
