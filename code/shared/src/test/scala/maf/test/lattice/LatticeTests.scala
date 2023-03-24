@@ -170,13 +170,13 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Conversion to real is sound */
             p.property("∀ a: inject(a.toDouble) ⊑ toReal(inject(a))") =
-                forAll((a: Int) => RealLattice[R].subsumes(toReal[R](inject(a)), RealLattice[R].inject(a.toDouble)))
+                forAll(Generators.int)((a: BigInt) => RealLattice[R].subsumes(toReal[R](inject(a)), RealLattice[R].inject(a.toDouble)))
 
             /** Random preserves bottom */
             p.property("random(⊥) = ⊥") = random(bottom) == bottom
 
             /** Random is sound */
-            p.property("∀ a: inject(a.random) ⊑ random(inject(a))") = forAll((a: Int) => subsumes(random(inject(a)), inject(MathOps.random(a))))
+            p.property("∀ a: inject(a.random) ⊑ random(inject(a))") = forAll(Generators.int)((a: BigInt) => subsumes(random(inject(a)), inject(MathOps.random(a))))
 
             /** Random is monotone */
             p.property("∀ a, b: a ⊑ b ⇒ random(a) ⊑ random(b)") = forAll { (b: I) =>
@@ -197,7 +197,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Addition is sound */
             p.property("∀ a, b: inject(a + b) ⊑ plus(inject(a), inject(b))") =
-                forAll((a: BigInt, b: BigInt) => subsumes(plus(inject(a), inject(b)), inject(a + b)))
+                forAll(Generators.int, Generators.int)((a: BigInt, b: BigInt) => subsumes(plus(inject(a), inject(b)), inject(a + b)))
 
             /** Addition is associative */
             p.property("∀ a, b, c: plus(a, plus(b, c)) == plus(plus(a, b), c)") =
@@ -218,7 +218,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Subtraction is sound */
             p.property("∀ a, b: inject(a - b) ⊑ minus(inject(a), inject(b))") =
-                forAll((a: BigInt, b: BigInt) => subsumes(minus(inject(a), inject(b)), inject(a - b)))
+                forAll(Generators.int, Generators.int)((a: BigInt, b: BigInt) => subsumes(minus(inject(a), inject(b)), inject(a - b)))
 
             /** Subtraction is anticommutative */
             p.property("∀ a, b: minus(a, b) == minus(inject(0), minus(b, a))") = forAll((a: I, b: I) => minus(a, b) == minus(inject(0), minus(b, a)))
@@ -235,7 +235,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Addition is sound */
             p.property("∀ a, b: inject(a + b) ⊑ times(inject(a), inject(b))") =
-                forAll((a: BigInt, b: BigInt) => subsumes(times(inject(a), inject(b)), inject(a * b)))
+                forAll(Generators.int, Generators.int)((a: BigInt, b: BigInt) => subsumes(times(inject(a), inject(b)), inject(a * b)))
 
             /** Addition is associative */
             p.property("∀ a, b, c: times(a, times(b, c)) == times(times(a, b), c)") =
@@ -257,7 +257,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Quotient is sound */
             p.property("∀ a, b ≠ 0: inject(a / b) ⊑ div(inject(a), inject(b))") =
-                forAll((a: BigInt, b: BigInt) => conditional(b != 0, subsumes(quotient(inject(a), inject(b)), inject(a / b))))
+                forAll(Generators.int, Generators.int)((a: BigInt, b: BigInt) => conditional(b != 0, subsumes(quotient(inject(a), inject(b)), inject(a / b))))
 
             /** Modulo preserves bottom */
             p.property("modulo(a, ⊥) = ⊥ = modulo(⊥, a)") =
@@ -272,7 +272,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Modulo is sound */
             p.property("∀ a, b ≠ 0: inject(a / b) ⊑ modulo(inject(a), inject(b))") =
-                forAll((a: BigInt, b: BigInt) => conditional(b != 0, subsumes(modulo(inject(a), inject(b)), inject(MathOps.modulo(a, b)))))
+                forAll(Generators.int, Generators.int)((a: BigInt, b: BigInt) => conditional(b != 0, subsumes(modulo(inject(a), inject(b)), inject(MathOps.modulo(a, b)))))
 
             /** Remainder preserves bottom */
             p.property("rem(a, ⊥) = ⊥ = rem(⊥, a) (if a ≠ 0)") =
@@ -287,7 +287,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Remainder is sound */
             p.property("∀ a, b ≠ 0: inject(a / b) ⊑ rem(inject(a), inject(b))") =
-                forAll((a: BigInt, b: BigInt) => conditional(b != 0, subsumes(remainder(inject(a), inject(b)), inject(MathOps.remainder(a, b)))))
+                forAll(Generators.int, Generators.int)((a: BigInt, b: BigInt) => conditional(b != 0, subsumes(remainder(inject(a), inject(b)), inject(MathOps.remainder(a, b)))))
 
             /** Less-than operation preserves bottom */
             p.property("lt(a, ⊥) = ⊥ = lt(⊥, a)") =
@@ -302,7 +302,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** Less-than operation is sound */
             p.property("∀ a, b ≠ 0: inject(a < b) ⊑ lt(inject(a), inject(b))") =
-                forAll((a: BigInt, b: BigInt) => BoolLattice[B].subsumes(lt[B](inject(a), inject(b)), BoolLattice[B].inject(a < b)))
+                forAll(Generators.int, Generators.int)((a: BigInt, b: BigInt) => BoolLattice[B].subsumes(lt[B](inject(a), inject(b)), BoolLattice[B].inject(a < b)))
 
             /** To-string operation preserves bottom */
             p.property("toString(⊥) = ⊥") = lat.toString[S](bottom) == StringLattice[S].bottom
@@ -316,7 +316,7 @@ abstract class IntLatticeTest[I: IntLattice, B: BoolLattice, R: RealLattice, S: 
 
             /** To-string operation is sound */
             p.property("∀ a, b: inject(toString(a)) ⊑ toString(inject(a))") =
-                forAll((a: BigInt) => StringLattice[S].subsumes(lat.toString[S](inject(a)), StringLattice[S].inject(a.toString)))
+                forAll(Generators.int)((a: BigInt) => StringLattice[S].subsumes(lat.toString[S](inject(a)), StringLattice[S].inject(a.toString)))
 
             p
         }
@@ -372,7 +372,7 @@ abstract class RealLatticeTest[R: RealLattice, B: BoolLattice, I: IntLattice, S:
             p.property("random(⊥) = ⊥") = random(bottom) == bottom
 
             /** Random is sound */
-            p.property("∀ a: inject(a.random) ⊑ random(inject(a))") = forAll((a: Double) => subsumes(random(inject(a)), inject(MathOps.random(a))))
+            p.property("∀ a: inject(a.random) ⊑ random(inject(a))") = forAll(Generators.double)((a: Double) => subsumes(random(inject(a)), inject(MathOps.random(a))))
 
             /** Random is monotone */
             p.property("∀ a, b: a ⊑ b ⇒ random(a) ⊑ random(b)") = forAll { (b: R) =>
@@ -439,7 +439,7 @@ abstract class RealLatticeTest[R: RealLattice, B: BoolLattice, I: IntLattice, S:
 
             /** Division is sound */
             p.property("∀ a, b ≠ 0: inject(a / b) ⊑ div(inject(a), inject(b))") =
-                forAll((a: Double, b: Double) => conditional(b != 0, subsumes(div(inject(a), inject(b)), inject(a / b))))
+                forAll(Generators.double, Generators.double)((a: Double, b: Double) => conditional(b != 0, subsumes(div(inject(a), inject(b)), inject(a / b))))
 
             /** Less-than operation preserves bottom */
             p.property("lt(a, ⊥) = ⊥ = lt(⊥, a)") =

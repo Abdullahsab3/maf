@@ -518,8 +518,9 @@ object NativeLattice:
                 else BoolLattice[B2].inject(n1 < n2)
                 
             def toString[S2: StringLattice](n: R): S2 =
-                if(n == top) then StringLattice[S2].top
-                else if (n == bottom) then StringLattice[S2].bottom
+
+                if (n == bottom) then StringLattice[S2].bottom
+                else if(n == top) then StringLattice[S2].top
                 else StringLattice[S2].inject(n.toString)
                 
         }
