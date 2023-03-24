@@ -433,7 +433,7 @@ object NativeLattice:
 
         }
 
-        implicit val realLL: RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
+        implicit val realLL: AbstractBaseInstance[Double, R] with RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
             
             val top = Double.MaxValue
             val bottom = Double.MinValue
@@ -525,7 +525,7 @@ object NativeLattice:
                 
         }
 
-        implicit val charLL: CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
+        implicit val charLL: AbstractBaseInstance[Char, C] with CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
             
             val top: C = Byte.MaxValue
             val bottom: C = Byte.MinValue
@@ -587,7 +587,7 @@ object NativeLattice:
         }
 
         // TODO: symshow
-        implicit val symLL: SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
+        implicit val symLL: AbstractBaseInstance[String, Sym] with SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
             
             val top: Sym = 
                 val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
