@@ -137,8 +137,8 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
 
             /** Append is sound */
             p.property("∀ a, b: append(inject(a), inject(b)) ⊑ inject(a ++ b)") =
+                // moet dit niet gewoon gen, gen zijn? for some reason krijg ik een error
                 Prop.forAll(Generators.str, Generators.str)((a: String, b: String) =>
-                  //  println(s"a: \"${a}\", length: ${a.length()}, b: \"${b}\", length: ${b.length()}")
                     val c = append(inject(a), inject(b))
                     val d = inject(a++b)
                     subsumes(c, d))
@@ -147,7 +147,6 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
             p.property("∀ a, b, c: append(append(a, b), c) == append(a, append(b, c))") =
                 
                 forAll((a: S, b: S, c: S) => append(append(a, b), c) == append(a, append(b, c)))
-
             p
         }
     checkAll(stringLaws)
