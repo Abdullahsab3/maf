@@ -112,9 +112,11 @@ object NativeLattice:
         
 
     object L:
-        def Byte2Boolean(i: B): Boolean = 
-            i == 1.toByte
         implicit val boolLL:  BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
+            
+            private def Byte2Boolean(i: B): Boolean = 
+                i == 1.toByte
+            
             val top = 3
             val bottom = 2
             def inject(b: Boolean): B = if b then 1 else 0
@@ -202,10 +204,9 @@ object NativeLattice:
                 val stringLength = x.length()
                 struct._1 = stringLength
                 struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
-                val str : Array[Byte] = (x + 0.toChar).getBytes().nn
                 var i = 0
                 while(i <= stringLength) do
-                    !(struct._2 + i) = str(i)
+                    !(struct._2 + i) = x(i).toByte
                     i = i +1
                 //allocatedStrings += struct
                 struct
@@ -489,7 +490,7 @@ object NativeLattice:
                 
         }
 
-        
+
         implicit val charLL: AbstractBaseInstance[Char, C] with CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
             
             val top: C = Byte.MaxValue
