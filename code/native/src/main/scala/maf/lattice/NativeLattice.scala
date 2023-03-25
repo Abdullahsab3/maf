@@ -114,7 +114,7 @@ object NativeLattice:
     object L:
         def Byte2Boolean(i: B): Boolean = 
             i == 1.toByte
-        implicit val boolLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
+        implicit val boolLL:  BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
             val top = 3
             val bottom = 2
             def inject(b: Boolean): B = if b then 1 else 0
@@ -149,43 +149,7 @@ object NativeLattice:
                 else if (n1 == top || n2 == top) then BoolLattice[B2].top
                 else BoolLattice[B2].inject(n1 == n2)
         }
-
- /*        implicit val boolSNLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
-            val top = 3.toByte
-            val bottom = 2.toByte
-            def inject(b: Boolean): B = if b then 1 else 0
-            def isTrue(b: B): Boolean = 
-                import boolLatticeOps.boolIsTrue
-                val result = boolIsTrue(b)
-                Byte2Boolean(result)
-            def isFalse(b: B): Boolean =
-                import boolLatticeOps.boolIsFalse
-                val result = boolIsFalse(b)
-                Byte2Boolean(result)
-            def not(b: B): B =
-                import boolLatticeOps.boolNot
-                boolNot(b) 
-            override def join(x: B, y: => B): B =
-                import boolLatticeOps.boolJoin
-                boolJoin(x, y)  
-            override def meet(x: B, y: => B): B =
-                import boolLatticeOps.boolMeet
-                boolMeet(x, y)
-            override def subsumes(x: B, y: => B): Boolean =
-                import boolLatticeOps.boolSubsumes
-                val result = boolSubsumes(x, y)
-                Byte2Boolean(result)
-            override def show(x: B): String =
-                if(x == top) then typeName
-                else if(x == bottom) then s"$typeName.⊥"
-                else Byte2Boolean(x).toString
-
-            override def eql[B2: BoolLattice](n1: B, n2: B): B2 =
-                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
-                else if (n1 == top || n2 == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 == n2)
-        }
- */
+        
         // Ptr[CStruct2[CInt, CString]]
 
         implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
@@ -525,6 +489,7 @@ object NativeLattice:
                 
         }
 
+        
         implicit val charLL: AbstractBaseInstance[Char, C] with CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
             
             val top: C = Byte.MaxValue
