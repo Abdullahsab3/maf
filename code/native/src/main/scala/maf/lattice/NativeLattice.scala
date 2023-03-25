@@ -114,7 +114,7 @@ object NativeLattice:
     object L:
         implicit val boolLL:  BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
             
-            private def Byte2Boolean(i: B): Boolean = 
+            private def CChar2Boolean(i: B): Boolean = 
                 i == 1.toByte
             
             val top = 3
@@ -123,11 +123,11 @@ object NativeLattice:
             def isTrue(b: B): Boolean = 
                 import boolLatticeOps.boolIsTrue
                 val result = boolIsTrue(b)
-                Byte2Boolean(result)
+                CChar2Boolean(result)
             def isFalse(b: B): Boolean =
                 import boolLatticeOps.boolIsFalse
                 val result = boolIsFalse(b)
-                Byte2Boolean(result)
+                CChar2Boolean(result)
             def not(b: B): B =
                 import boolLatticeOps.boolNot
                 boolNot(b) 
@@ -140,11 +140,11 @@ object NativeLattice:
             override def subsumes(x: B, y: => B): Boolean =
                 import boolLatticeOps.boolSubsumes
                 val result = boolSubsumes(x, y)
-                Byte2Boolean(result)
+                CChar2Boolean(result)
             override def show(x: B): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
-                else Byte2Boolean(x).toString
+                else CChar2Boolean(x).toString
 
             override def eql[B2: BoolLattice](n1: B, n2: B): B2 =
                 if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
@@ -205,9 +205,10 @@ object NativeLattice:
                 struct._1 = stringLength
                 struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                 var i = 0
-                while(i <= stringLength) do
+                while(i < stringLength) do
                     !(struct._2 + i) = x(i).toByte
                     i = i +1
+                !(struct._2 + stringLength) = 0.toByte
                 //allocatedStrings += struct
                 struct
             
@@ -216,22 +217,10 @@ object NativeLattice:
                 else if (s == bottom) then IntLattice[I2].bottom
                 else IntLattice[I2].inject(s._1)
 
-            private def copyS(s: S): S = 
-                val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S] 
-                val stringLength = s._1
-                struct._1 = stringLength
-                struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
-                strcpy(struct._2, s._2, stringLength)
-                struct
-                
-            def append(s1: S, s2: S): S = 
 
+            def append(s1: S, s2: S): S = 
                 if(s1 == bottom || s2 == bottom) then bottom
                 else if(s1 == top || s2 == top) then top
-                else if(s1._1 == 0) then 
-                    copyS(s2)
-                else if(s2._1 == 0) then 
-                    copyS(s1)
                 else 
                     val struct = malloc(sizeof[Sn_struct]).asInstanceOf[S]
                     val stringLength = s1._1 + s2._1
@@ -327,7 +316,6 @@ object NativeLattice:
         implicit val intLL: AbstractBaseInstance[BigInt, I] with IntLattice[I] = new AbstractBaseInstance[BigInt, I]("Int") with IntLattice[I] {
 
             val top: I = Int.MaxValue
-
             val bottom: I = Int.MinValue
 
             def inject(x: BigInt): I = x.toInt
@@ -468,8 +456,9 @@ object NativeLattice:
                 n1: R,
                 n2: R
               ) = 
-                if(n1 == top || n2 == top) then top
-                else if (n1 == bottom || n2 == bottom) then bottom
+
+                if (n1 == bottom || n2 == bottom) then bottom
+                else if(n1 == top || n2 == top) then top
                 else op(n1, n2)
 
             def plus(n1: R, n2: R): R = binop(_ + _, n1, n2)
@@ -478,8 +467,9 @@ object NativeLattice:
             def div(n1: R, n2: R): R = binop(_ / _, n1, n2)
             def expt(n1: R, n2: R): R = binop((x, y) => Math.pow(x, y), n1, n2)
             def lt[B2: BoolLattice](n1: R, n2: R): B2 = 
-                if(n1 == top || n2 == top) then BoolLattice[B2].top
-                else if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+
+                if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else if(n1 == top || n2 == top) then BoolLattice[B2].top
                 else BoolLattice[B2].inject(n1 < n2)
                 
             def toString[S2: StringLattice](n: R): S2 =
