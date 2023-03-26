@@ -77,9 +77,9 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     )
   )
   .jvmSettings(
-    assembly / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
+    assembly / mainClass := Some("maf.cli.runnables.Benchmark"),
     /** General */
-    Compile / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
+    Compile / mainClass := Some("maf.cli.runnables.Benchmark"),
     //libraryDependencies += "net.openhft" % "affinity" % "3.21ea82",
     run / fork := false,
   )
@@ -89,7 +89,7 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     libraryDependencies += ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13)
   )
   .nativeSettings(
-    Compile / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
+    Compile / mainClass := Some("maf.cli.runnables.Benchmark"),
     nativeMode := "release-full",
     nativeLTO := "thin"
   )

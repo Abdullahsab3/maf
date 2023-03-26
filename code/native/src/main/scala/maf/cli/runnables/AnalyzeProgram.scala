@@ -23,7 +23,7 @@ import scala.collection.mutable.ListBuffer
 
 
 object AnalyzeProgram extends App:    
-    val bench: List[String] = SchemeBenchmarkPrograms.fromFolder("test/R5RS/icp")().toList
+    val bench: List[String] = SchemeBenchmarkPrograms.fromFolder("test/R5RS/ad")().toList
     val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
 
     val results: ListBuffer[Long] = ListBuffer.empty ++ bench.map(_ => 0)
@@ -39,7 +39,7 @@ object AnalyzeProgram extends App:
             val time = Timer.timeOnly {
                 a.analyzeWithTimeout(timeout())
             }
-            if warmupskipped then results(index) = results(index) + time
+            results(index) = results(index) + time
             println(s"terminated in ${time / 1000000} ms.")
         } catch {
             case t: Throwable =>
@@ -54,7 +54,7 @@ object AnalyzeProgram extends App:
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
             with SchemeModFNoSensitivity
-            with SchemeConstantPropagationDomain
+            with NativeSchemeDomain
             with DependencyTracking[SchemeExp]
             with FIFOWorklistAlgorithm[SchemeExp] {
             override def intraAnalysis(cmp: SchemeModFComponent) =
@@ -62,7 +62,7 @@ object AnalyzeProgram extends App:
         }
 
     var i = 0
-    while(i < 10) do
+    while(i < 50) do
         //if i == 10 then warmupskipped = true
         for(j <- 0 until bench.length) do
             runAnalysis(j, program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES)))
