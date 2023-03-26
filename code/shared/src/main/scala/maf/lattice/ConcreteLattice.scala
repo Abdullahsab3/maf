@@ -73,6 +73,9 @@ class ConcreteLattice:
                 case (Top, _) | (_, Top)             => Top
                 case (Values(content1), Values(content2)) =>
                     makeValues(content1.foldMap(s1 => content2.map(s2 => s1 + s2)))
+
+            def streql(s: S, that: S): Boolean =
+                s == that
             def substring[I2: IntLattice](
                 s: S,
                 from: I2,

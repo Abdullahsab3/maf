@@ -9,29 +9,36 @@ import maf.modular.scheme.modf.{SimpleSchemeModFAnalysis, SchemeModFNoSensitivit
 
 import maf.modular.worklist.{FIFOWorklistAlgorithm}
 import maf.util.Reader
+import maf.util.benchmarks.{Timeout, Timer}
 
 import scala.concurrent.duration.*
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
 import maf.modular.scheme.SchemeConstantPropagationDomain
+import scala.collection.mutable.ListBuffer
 
 
 
-object AnalyzeProgram extends App:
-    def runAnalysis[A <: ModAnalysis[SchemeExp]](text: SchemeExp, analysis: SchemeExp => A) :A = //, timeout: () => Timeout.T): A =
+object AnalyzeProgram extends App:    
+    val bench: List[String] = SchemeBenchmarkPrograms.fromFolder("test/R5RS/icp")().toList
+    val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
 
+    val results: ListBuffer[Long] = ListBuffer.empty ++ bench.map(_ => 0)
+
+    var warmupskipped = true
+
+    def runAnalysis[A <: ModAnalysis[SchemeExp]](index: Int, analysis: SchemeExp => A, timeout: () => Timeout.T): A =
+        val text = parsedPrograms(index)
+        val pr = bench(index)
         val a = analysis(text)
-        a.analyze()
-        a
-/*         print(s"Analysis started ")
+        print(s"Analysis of $pr ")
         try {
             val time = Timer.timeOnly {
                 a.analyzeWithTimeout(timeout())
-                //println(a.program.prettyString())
             }
+            if warmupskipped then results(index) = results(index) + time
             println(s"terminated in ${time / 1000000} ms.")
-            //a.deps.toSet[(Dependency, Set[a.Component])].flatMap({ case (d, cmps) => cmps.map(c => (d, c).toString()) }).foreach(println)
         } catch {
             case t: Throwable =>
                 println(s"raised exception.")
@@ -39,24 +46,8 @@ object AnalyzeProgram extends App:
                 t.printStackTrace()
                 System.err.flush()
         }
-        a */
+        a
 
-    val bench: List[String] = List(
-        //  "test/taint/tainted-function-select.scm",
-        "test/R5RS/icp/icp_1c_ambeval.scm",
-        "test/R5RS/icp/icp_5_regsim.scm",
-        "test/R5RS/icp/icp_7_eceval.scm",
-        "test/R5RS/icp/icp_1c_multiple-dwelling.scm",
-        "test/R5RS/icp/icp_1c_ontleed.scm",
-        "test/R5RS/icp/icp_1c_prime-sum-pair.scm",
-        "test/R5RS/icp/icp_2_aeval.scm",
-        "test/R5RS/icp/icp_3_leval.scm",
-        "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
-        "test/R5RS/icp/icp_8_compiler.scm")
-
-    val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
-
-    // Used by webviz.
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
             with SchemeModFNoSensitivity
@@ -67,17 +58,14 @@ object AnalyzeProgram extends App:
                 new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
         }
 
-    def triggerJprofiler: Unit =
-        println("Triggering the Jprofiler to start after the JVM warmupi")
-    @main
-    def run() =
-        parsedPrograms.foreach({ b =>
-            //runAnalysis(b, program => SchemeAnalyses.kCFAAnalysis(program, 0), () => Timeout.start(Duration(2, MINUTES)))
-            for (i <- 0 to 15) {
-                if(i > 10) then triggerJprofiler
-                val a = runAnalysis(b, program => newStandardAnalysis(program)) //, () => Timeout.start(Duration(1, MINUTES)))
-                println(b)
-                println()
-            }
-
-        })
+    var i = 0
+    while(i < 10) do
+        //if i == 10 then warmupskipped = true
+        for(j <- 0 until bench.length) do
+            runAnalysis(j, program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES)))
+        i = i + 1
+    
+    println("------------- RESULTS ---------------")
+    
+    for((name, result) <- bench.zip(results)) do 
+        println(s"$name     total: ${result / 1000000000} s")

@@ -164,6 +164,9 @@ object ConstantPropagation:
                 case Bottom        => MayFail.success(IntLattice[I2].bottom)
                 case Constant(str) => MayFail.fromOption(NumOps.bigIntFromString(str).map(IntLattice[I2].inject))(NotANumberString)
                 case Top           => MayFail.success(IntLattice[I2].top).addError(NotANumberString)
+
+            def streql(s: S, that: S): Boolean = 
+                s == that
         }
 
         implicit val intCP: IntLattice[I] = new BaseInstance[BigInt]("Int") with IntLattice[I] {

@@ -146,7 +146,10 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
             /** Append is associative */
             p.property("∀ a, b, c: append(append(a, b), c) == append(a, append(b, c))") =
                 
-                forAll((a: S, b: S, c: S) => append(append(a, b), c) == append(a, append(b, c)))
+                forAll((a: S, b: S, c: S) => 
+                    println(s"a: ${show(a)}, b: ${show(b)}, c: ${show(c)}")
+                    println(s"first: ${show(append(append(a, b), c))}, sec: ${show(append(a, append(b, c)))}")
+                    append(append(a, b), c) == append(a, append(b, c)))
             p
         }
     checkAll(stringLaws)

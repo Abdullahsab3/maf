@@ -6,7 +6,6 @@ lazy val root = project
   .aggregate(mafJVM, mafJS)
 
 lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
-  .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full)
   .in(file("code"))
   .settings(
@@ -80,7 +79,7 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .jvmSettings(
     assembly / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
     /** General */
-    Compile / mainClass := Some("maf.cli.Main"),
+    Compile / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
     //libraryDependencies += "net.openhft" % "affinity" % "3.21ea82",
     run / fork := false,
   )

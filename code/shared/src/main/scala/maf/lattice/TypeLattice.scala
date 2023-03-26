@@ -48,6 +48,9 @@ object Type:
             def append(s1: T, s2: T) = (s1, s2) match
                 case (Bottom, _) | (_, Bottom) => Bottom
                 case (Top, _) | (Top, _)       => Top
+
+            def streql(s: S, that: S): Boolean =
+                s == that
             def ref[I2: IntLattice, C2: CharLattice](s: S, i: I2): C2 = s match
                 case Bottom                            => CharLattice[C2].bottom
                 case Top if IntLattice[I2].isBottom(i) => CharLattice[C2].bottom

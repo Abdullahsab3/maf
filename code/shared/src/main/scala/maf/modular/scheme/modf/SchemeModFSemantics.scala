@@ -387,7 +387,7 @@ trait BaseSchemeModFSemanticsIdentity extends BaseSchemeModFSemantics:
         def map[A, B](m: M[A])(f: A => B): M[B] =
             flatMap(m)((a) => unit(f(a)))
         def fail[X](e: Error): M[X] =
-            warn(s"encountered an error $e")
+            //warn(s"encountered an error $e")
             Failure
         def mbottom[X]: M[X] = Failure
         def mjoin[X: Lattice](x: M[X], y: M[X]): M[X] =

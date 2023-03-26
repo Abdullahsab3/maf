@@ -16,21 +16,31 @@ import scala.concurrent.duration.*
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
 import maf.modular.scheme.NativeSchemeDomain
+import maf.lattice.NativeLattice
+import maf.modular.scheme.SchemeConstantPropagationDomain
+import scala.collection.mutable.ListBuffer
 
 
 
-object AnalyzeProgram:
-    def runAnalysis[A <: ModAnalysis[SchemeExp]](bench: String, analysis: SchemeExp => A, timeout: () => Timeout.T): A =
-        val text = SchemeParser.parseProgram(Reader.loadFile(bench))
+object AnalyzeProgram extends App:    
+    val bench: List[String] = SchemeBenchmarkPrograms.fromFolder("test/R5RS/icp")().toList
+    val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
+
+    val results: ListBuffer[Long] = ListBuffer.empty ++ bench.map(_ => 0)
+
+    var warmupskipped = true
+
+    def runAnalysis[A <: ModAnalysis[SchemeExp]](index: Int, analysis: SchemeExp => A, timeout: () => Timeout.T): A =
+        val text = parsedPrograms(index)
+        val pr = bench(index)
         val a = analysis(text)
-        print(s"Analysis of $bench ")
+        print(s"Analysis of $pr ")
         try {
             val time = Timer.timeOnly {
                 a.analyzeWithTimeout(timeout())
-                //println(a.program.prettyString())
             }
+            if warmupskipped then results(index) = results(index) + time
             println(s"terminated in ${time / 1000000} ms.")
-            //a.deps.toSet[(Dependency, Set[a.Component])].flatMap({ case (d, cmps) => cmps.map(c => (d, c).toString()) }).foreach(println)
         } catch {
             case t: Throwable =>
                 println(s"raised exception.")
@@ -38,62 +48,27 @@ object AnalyzeProgram:
                 t.printStackTrace()
                 System.err.flush()
         }
+        NativeLattice.deallocateAllStrings()
         a
 
-
-    /**
-      * Runs a program given the string containing the program
-      */
-    def runProgram[A <: ModAnalysis[SchemeExp]](program: String, analysis: SchemeExp => A, timeout: () => Timeout.T): A =
-        val text = SchemeParser.parseProgram(program)
-        val a = analysis(text)
-      //  print(s"Analysis of $bench ")
-        try {
-            val time = Timer.timeOnly {
-                a.analyzeWithTimeout(timeout())
-                //println(a.program.prettyString())
-            }
-            println(s"terminated in ${time / 1000000} ms.")
-            //a.deps.toSet[(Dependency, Set[a.Component])].flatMap({ case (d, cmps) => cmps.map(c => (d, c).toString()) }).foreach(println)
-        } catch {
-            case t: Throwable =>
-                println(s"raised exception.")
-                System.err.println(t.getMessage)
-                t.printStackTrace()
-                System.err.flush()
-        }
-        a
-    val bench: List[String] = List(
-        //  "test/taint/tainted-function-select.scm",
-        "test/R5RS/icp/icp_1c_ambeval.scm",
-        "test/R5RS/icp/icp_5_regsim.scm",
-        "test/R5RS/icp/icp_7_eceval.scm",
-        "test/R5RS/icp/icp_1c_multiple-dwelling.scm",
-        "test/R5RS/icp/icp_1c_ontleed.scm",
-        "test/R5RS/icp/icp_1c_prime-sum-pair.scm",
-        "test/R5RS/icp/icp_2_aeval.scm",
-        "test/R5RS/icp/icp_3_leval.scm",
-        "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
-        "test/R5RS/icp/icp_8_compiler.scm")
-
-   // val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
-
-    // Used by webviz.
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
             with SchemeModFNoSensitivity
-            with NativeSchemeDomain
+            with SchemeConstantPropagationDomain
             with DependencyTracking[SchemeExp]
             with FIFOWorklistAlgorithm[SchemeExp] {
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
         }
 
-
-    def main(args: Array[String]): Unit = 
-            val a = runAnalysis(
-                "test/test.rkt", program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES))
-            )
-            println(a)
-            println(a.result)
-            println()
+    var i = 0
+    while(i < 10) do
+        //if i == 10 then warmupskipped = true
+        for(j <- 0 until bench.length) do
+            runAnalysis(j, program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES)))
+        i = i + 1
+    
+    println("------------- RESULTS ---------------")
+    
+    for((name, result) <- bench.zip(results)) do 
+        println(s"$name     total: ${result / 1000000000} s")

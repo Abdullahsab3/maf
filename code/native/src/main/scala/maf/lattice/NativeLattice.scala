@@ -29,6 +29,17 @@ import scala.collection.mutable.ListBuffer
 
 object NativeLattice:
 
+    var allocatedStrings : ListBuffer[S] = ListBuffer.empty
+
+    def deallocateString(s: S): Unit =
+        free(s._2)
+        free(s.asInstanceOf[Ptr[Byte]])
+
+    def deallocateAllStrings() = 
+        allocatedStrings.foreach(deallocateString(_))
+        allocatedStrings = ListBuffer.empty
+
+
 
     // First field: length of the string when we have a constant. A useless number otherwise
     // second field: pointer to the memory containing the string
@@ -54,11 +65,6 @@ object NativeLattice:
         else 
             results = false
         results
-
-    implicit class SOps(val s: S):
-        @inline
-        final def ==(that: S): Boolean =
-            cstrEquals(s._2, that._2, s._1, that._1)
             
 
 
@@ -69,7 +75,6 @@ object NativeLattice:
       * @tparam T  the type of the results of injection (i.e. the elements in the lattice)
       */
     abstract class AbstractBaseInstance[E, T](val typeName: String) extends Lattice[T]:
-        import maf.lattice.NativeLattice.SOps
 
         def inject(x: E): T
         def show(x: T): String =
@@ -145,18 +150,11 @@ object NativeLattice:
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
                 else CChar2Boolean(x).toString
-
-            override def eql[B2: BoolLattice](n1: B, n2: B): B2 =
-                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
-                else if (n1 == top || n2 == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 == n2)
         }
         
         // Ptr[CStruct2[CInt, CString]]
 
         implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
-
-            val allocatedStrings: ListBuffer[S] = ListBuffer()
 
 
             // TODO: maybe you can change the representation of top and bottom
@@ -209,7 +207,7 @@ object NativeLattice:
                     !(struct._2 + i) = x(i).toByte
                     i = i +1
                 !(struct._2 + stringLength) = 0.toByte
-                //allocatedStrings += struct
+                allocatedStrings += struct
                 struct
             
             def length[I2: IntLattice](s: S): I2 = 
@@ -217,6 +215,10 @@ object NativeLattice:
                 else if (s == bottom) then IntLattice[I2].bottom
                 else IntLattice[I2].inject(s._1)
 
+            override def eql[B2: BoolLattice](n1: S, n2: S): B2 =
+                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else if (n1 == top || n2 == top) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(cstrEquals(n1._2 ,n2._2, n1._1, n2._1))
 
             def append(s1: S, s2: S): S = 
                 if(s1 == bottom || s2 == bottom) then bottom
@@ -228,6 +230,7 @@ object NativeLattice:
                     struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
                     strcpy(struct._2, s1._2, s1._1)
                     strcat(struct._2, s2._2, s1._1, s2._1)
+                    allocatedStrings += struct
                     struct
             
             private def getSubString(s: CString, sub: CString, from: Int, to: Int): Unit =
@@ -253,6 +256,7 @@ object NativeLattice:
                         struct._1 = 1
                         struct._2 = malloc(substringLength.toULong + 1.toULong).asInstanceOf[CString]
                         getSubString(s._2, struct._2, from2, to2)
+                        allocatedStrings += struct
                     struct 
 
             def ref[I2: IntLattice, C2: CharLattice](s: S, i: I2): C2 =
@@ -288,6 +292,7 @@ object NativeLattice:
                     strcpy(struct._2, s._2, s._1)
                     // This could probably be written better
                     !(struct._2 + i.asInstanceOf[Int]) = c.asInstanceOf[CChar]
+                    allocatedStrings += struct
                     struct
 
             def lt[B2 : BoolLattice](s1: S, s2: S): B2 = 
