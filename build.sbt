@@ -92,7 +92,7 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .nativeSettings(
     Compile / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
     nativeMode := "release-full",
-    nativeLTO := "full"
+    nativeLTO := "thin"
   )
 
 lazy val mafJVM = maf.jvm
