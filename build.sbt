@@ -78,6 +78,7 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     )
   )
   .jvmSettings(
+    assembly / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
     /** General */
     Compile / mainClass := Some("maf.cli.Main"),
     //libraryDependencies += "net.openhft" % "affinity" % "3.21ea82",
@@ -90,6 +91,8 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .nativeSettings(
     Compile / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
+    nativeMode := "release-full",
+    nativeLTO := "full"
   )
 
 lazy val mafJVM = maf.jvm
