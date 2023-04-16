@@ -23,7 +23,7 @@ import scala.collection.mutable.ListBuffer
 
 
 object AnalyzeProgram extends App:    
-    val bench: List[String] = SchemeBenchmarkPrograms.fromFolder("test/R5RS/ad")().toList
+    val bench: List[String] = SchemeBenchmarkPrograms.fromFolder("test/R5RS/icp")().toList
     val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
 
     val results: ListBuffer[Long] = ListBuffer.empty ++ bench.map(_ => 0)

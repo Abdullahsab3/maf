@@ -56,8 +56,8 @@ object  Benchmark extends App:
         if(args.length > 2) then
             testFiles = args(1)
             updateBench
-        if(args.length > 4) then
-            rounds = args(3).toInt
+        if(args.length > 3) then
+            rounds = args(2).toInt
 
 
 

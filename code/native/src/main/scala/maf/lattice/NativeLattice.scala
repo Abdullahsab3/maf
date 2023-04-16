@@ -5,7 +5,7 @@ import maf.core._
 import maf.lattice.interfaces._
 import NumOps._
 import scala.scalanative.libc.stdlib.{malloc, free, atol}
-import scala.scalanative.libc.string.{strlen, strcpy, strcat, strcmp}
+import scala.scalanative.libc.string.{strlen, strcmp}
 import scala.scalanative.libc.ctype.{tolower, toupper, islower, isupper}
 import scalanative.unsigned.UnsignedRichInt
 
@@ -45,6 +45,7 @@ object NativeLattice:
     // second field: pointer to the memory containing the string
     type Sn_struct = CStruct2[CInt, CString]
     type S = Ptr[Sn_struct]
+    type S2 = String
     type B = CChar
     type I = CInt
     type R = CDouble
@@ -153,6 +154,110 @@ object NativeLattice:
         }
         
         // Ptr[CStruct2[CInt, CString]]
+
+        implicit val StringLL2: AbstractBaseInstance[String, S2] with StringLattice[S2] = new AbstractBaseInstance[String, S2]("Str") with StringLattice[S2] {
+
+
+            // TODO: maybe you can change the representation of top and bottom
+            // by having negative numbers, and when comparing against these numbers itd fail
+
+            // TODO refactor. you can do a lot better than this.
+            override def subsumes(x: S2, y: => S2): Boolean =
+                if(x == top) then true
+                else if(y == top) then false
+                else if(y == bottom) then true 
+                else if(x == bottom) then false
+                else x == y
+
+            // assuming sufficient memory is allocated at dest
+            private def strcpy(dest: CString, src: CString, length: Int): Unit =
+                var i = 0
+                while(i <= length) do
+                    !(dest + i) = !(src + i)
+                    i = i + 1
+
+            // assuming sufficient memory is allcoated at dest
+            private def strcat(dest: CString, src: CString, destlength: Int, srclength: Int): Unit = 
+                var i = destlength
+                while(i <= srclength + destlength) do
+                    !(dest + i) = !(src + i - destlength)
+                    i = i + 1
+
+
+            override def show(x: S2): String =
+                if(x == top) then typeName
+                else if(x == bottom) then s"$typeName.⊥"
+                else x
+
+            val top: S2 = "fs6f5ertezt85ezr§(è)"
+            val bottom: S2 = "er6g85esfetr985'§"
+            
+            def inject(x: String): S2 = x
+            
+            def length[I2: IntLattice](s: S2): I2 = 
+                if(s == top) then IntLattice[I2].top
+                else if (s == bottom) then IntLattice[I2].bottom
+                else IntLattice[I2].inject(s.length)
+
+            override def eql[B2: BoolLattice](n1: S2, n2: S2): B2 =
+                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+                else if (n1 == top || n2 == top) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(n1 == n2)
+
+            def append(s1: S2, s2: S2): S2 = 
+                if(s1 == bottom || s2 == bottom) then bottom
+                else if(s1 == top || s2 == top) then top
+                else 
+                    inject(s1 ++ s2)
+            
+
+            def substring[I2: IntLattice](s: S2, from: I2, to: I2): S2 =
+                if(s == top) then top
+                else if(s == bottom) then bottom
+                else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
+                else if(from == IntLattice[I2].top || to == IntLattice[I2].top) then top
+                else
+                    inject(s.substring(from.asInstanceOf[Int], to.asInstanceOf[Int]).nn)
+
+            def ref[I2: IntLattice, C2: CharLattice](s: S2, i: I2): C2 =
+                if(s == top) then CharLattice[C2].top
+                else if(s == bottom) then CharLattice[C2].bottom
+                else if(i == IntLattice[I2].top) then CharLattice[C2].top
+                else if(i == IntLattice[I2].bottom) then CharLattice[C2].bottom
+                else 
+                    CharLattice[C2].inject(s(i.asInstanceOf[Int]))
+
+            def set[I2: IntLattice, C2: CharLattice](
+                s: S2,
+                i: I2,
+                c: C2
+              ): S2 =
+                if(s == bottom) then bottom
+                else if (IntLattice[I2].isBottom(i) || CharLattice[C2].isBottom(c)) then bottom
+                else if(s == top) then top
+                else if (i == IntLattice[I2].top || c == CharLattice[C2].top) then top
+                else 
+                    inject(s.replace(s(i.asInstanceOf[Int]), c.asInstanceOf[Char]).nn)
+
+            def lt[B2 : BoolLattice](s1: S2, s2: S2): B2 = 
+                if(s1 == bottom || s2 == bottom) then BoolLattice[B2].bottom
+                else if(s1 == top || s2 == top) then BoolLattice[B2].top
+                else
+                    BoolLattice[B2].inject(s1 < s2)
+
+            def toSymbol[Sym2: SymbolLattice](s: S2): Sym2 = 
+                if(s == top) then SymbolLattice[Sym2].top
+                else if(s == bottom) then SymbolLattice[Sym2].bottom
+                else 
+                    SymbolLattice[Sym2].inject(s)
+
+            def toNumber[I2: IntLattice](s: S2) = 
+                if(s == bottom) then MayFail.success(IntLattice[I2].bottom)
+                else if(s == top) then MayFail.success(IntLattice[I2].top).addError(NotANumberString)
+                else
+                    MayFail.success(IntLattice[I2].inject(s.toInt))
+
+        }
 
         implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
 

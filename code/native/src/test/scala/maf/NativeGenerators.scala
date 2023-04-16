@@ -20,6 +20,7 @@ abstract class NativeGenerator[E, X](gen: Gen[E])(implicit lat: AbstractBaseInst
     else { Gen.oneOf(l, lat.bottom) }
 
 object NativeStringGenerator extends NativeGenerator[String, NativeLattice.S](Generators.str)(StringLL)
+object NativeStringGenerator2 extends NativeGenerator[String, NativeLattice.S2](Generators.str)(StringLL2)
 object NativeIntGenerator extends NativeGenerator[BigInt, NativeLattice.I](Generators.int)(intLL)
 object NativeRealGenerator extends NativeGenerator[Double, NativeLattice.R](Generators.double)(realLL)
 object NativeCharGenerator extends NativeGenerator[Char, NativeLattice.C](Generators.char)(charLL)
