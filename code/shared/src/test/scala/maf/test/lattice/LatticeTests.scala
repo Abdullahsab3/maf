@@ -31,7 +31,7 @@ abstract class LatticeTest[L: Lattice](gen: LatticeGenerator[L]) extends Lattice
             implicit val shr = gen.shrink
             val lat: Lattice[L] = implicitly
             import lat._
-
+ 
             /** The subsumption operation is reflexive */
             p.property("∀ a: a ⊑ a") = forAll((a: L) => subsumes(a, a))
 
@@ -66,7 +66,7 @@ abstract class LatticeTest[L: Lattice](gen: LatticeGenerator[L]) extends Lattice
                     s"a ⊔ b = $ab" |:
                         subsumes(b, a) ==> (ab == b)
                 }
-            }
+            } 
             p
         }
     checkAll(laws)
@@ -106,9 +106,10 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
             implicit val arb = gen.anyArb
             val lat: StringLattice[S] = implicitly
             import lat._
-
-            /** Length preserves bottom */
-            p.property("length(⊥) = ⊥") = length[I](bottom) == IntLattice[I].bottom
+ 
+              /** Length preserves bottom */
+            p.property("length(⊥) = ⊥") = 
+                length[I](bottom) == IntLattice[I].bottom
 
             /** Length is monotone */
             p.property("∀ a, b: a ⊑ b ⇒ length(a) ⊑ length(b)") = forAll { (b: S) =>
@@ -134,22 +135,19 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
                     conditional(subsumes(c, b), subsumes(append(a, c), append(a, b)) && subsumes(append(c, a), append(b, a)))
                 }
             }
-
+   
             /** Append is sound */
             p.property("∀ a, b: append(inject(a), inject(b)) ⊑ inject(a ++ b)") =
-                // moet dit niet gewoon gen, gen zijn? for some reason krijg ik een error
-                Prop.forAll(Generators.str, Generators.str)((a: String, b: String) =>
+                Prop.forAll((a: String, b: String) =>
                     val c = append(inject(a), inject(b))
                     val d = inject(a++b)
                     subsumes(c, d))
-
-            /** Append is associative */
+ 
+             /** Append is associative */
             p.property("∀ a, b, c: append(append(a, b), c) == append(a, append(b, c))") =
                 
                 forAll((a: S, b: S, c: S) => 
-                    println(s"a: ${show(a)}, b: ${show(b)}, c: ${show(c)}")
-                    println(s"first: ${show(append(append(a, b), c))}, sec: ${show(append(a, append(b, c)))}")
-                    append(append(a, b), c) == append(a, append(b, c)))
+                    append(append(a, b), c) == append(a, append(b, c)))  
             p
         }
     checkAll(stringLaws)
