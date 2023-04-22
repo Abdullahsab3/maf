@@ -1,18 +1,13 @@
-(define string1 "This is a test for a string")
-
-"I am just free. so set me free"
-
 (define (return-the-string)
-  (define string2 "gebonden aan een variabele string1")
-  "I am hanging though, so I could be garbage"
-  string1)
+  "hello")
+(define x '())
 
 (define (call-the-other-proc)
-  (define the-non-garbage-string (return-the-string))
-  (define string3 "gebonden aan een variabele string3")
-  (string-append the-non-garbage-string string3))
+  (return-the-string))
 
-  ;; wat er zeker weg moet: string@2, string@7
-  ;; wat er misschien weg moet: string@6
+(define (another-dep)
+  (define a (return-the-string))
+  (set! x a)
+  (string-append a a))
 
-(call-the-other-proc)
+(string-append (another-dep) x)

@@ -58,8 +58,6 @@ class ConcreteLattice:
     /* TODO[easy]: the bool lattice implementation could be specialized (see the old "ConcreteBoolEfficient" implementation). Whether this results in a speed improvement should be evaluated */
 
     object L:
-        import maf.lattice._
-
         implicit class FoldMapOps[X](content: Set[X]):
             def foldMap[Y: Lattice](f: X => Y): Y =
                 content.foldLeft(Lattice[Y].bottom)((acc, v) => Lattice[Y].join(acc, f(v)))
