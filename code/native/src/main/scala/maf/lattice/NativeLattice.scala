@@ -35,13 +35,13 @@ object NativeLattice:
         NativeString.deallocateAllStrings()
 
 
-    type S = NativeString
-    type S2 = String
-    type B = CChar
-    type I = CInt
-    type R = CDouble
-    type C = CChar
-    type Sym = NativeString        
+    opaque type S = NativeString
+    opaque type S2 = String
+    opaque type B = CChar
+    opaque type I = CInt
+    opaque type R = CDouble
+    opaque type C = CChar
+    opaque type Sym = NativeString        
 
 
     /**
@@ -238,8 +238,6 @@ object NativeLattice:
 
             // TODO: maybe you can change the representation of top and bottom
             // by having negative numbers, and when comparing against these numbers itd fail
-
-
             override def show(x: S): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
