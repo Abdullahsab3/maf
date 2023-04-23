@@ -33,7 +33,7 @@ class NativeString(val underlying: S) extends AnyVal:
         val l2 = other.underlying._1
         val s1 = underlying._2
         val s2 = other.underlying._2
-        equals(other) || (l1 == l2 && cstrEquals(s1, s2))
+        s1 == s2|| (l1 == l2 && cstrEquals(s1, s2))
 
     // assuming sufficient memory is allocated at dest
     private def strcpy(dest: CString, src: CString): Unit =
@@ -87,7 +87,7 @@ class NativeString(val underlying: S) extends AnyVal:
         struct._1 = stringLength  
         struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
         strcpy(struct._2, underlying._2)
-        strcat(struct._2, other.underlying._2, other.underlying._1 - 1)
+        strcat(struct._2, other.underlying._2, underlying._1)
         val ns = new NativeString(struct)
         NativeString.allocatedStrings += ns
         ns

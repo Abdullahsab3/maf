@@ -8,7 +8,6 @@ import maf.core.Lattice
 import maf.lattice._
 import maf.lattice.interfaces.{BoolLattice, CharLattice, IntLattice, RealLattice, StringLattice, SymbolLattice}
 import maf.test.LatticeTest
-import scalanative.unsafe._
 
 
 /** TODO[medium] tests for scheme lattice */

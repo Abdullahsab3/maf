@@ -36,6 +36,7 @@ trait GlobalStore[Expr <: Expression] extends ModAnalysis[Expr] with AbstractDom
             case None if lattice.isBottom(value) => None
             case None                            => Some(store + (addr -> value))
             case Some(oldValue) =>
+                println(s"oldvalue: $oldValue, newvalue: $value")
                 val newValue = lattice.join(oldValue, value)
                 if newValue == oldValue then None
                 else Some(store + (addr -> newValue))
