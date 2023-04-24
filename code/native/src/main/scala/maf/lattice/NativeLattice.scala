@@ -31,9 +31,6 @@ import maf.lattice.NativeString
 
 object NativeLattice:
 
-    def deallocateAllStrings() = 
-        NativeString.deallocateAllStrings()
-
 
     opaque type S = NativeString
     opaque type S2 = String

@@ -11,6 +11,8 @@ import maf.modular.worklist.{FIFOWorklistAlgorithm}
 import maf.util.Reader
 import maf.util.benchmarks.{Timeout, Timer, Clock}
 
+import maf.lattice.NativeString
+
 import scala.concurrent.duration.*
 
 // null values are used here due to Java interop
@@ -88,7 +90,7 @@ object  Benchmark extends App:
                 t.printStackTrace()
                 System.err.flush()
         }
-        NativeLattice.deallocateAllStrings()
+        NativeString.deallocateAllStrings()
         a
 
     def newLLStandardAnalysis(program: SchemeExp) =

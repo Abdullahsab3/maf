@@ -20,10 +20,13 @@ class NativeString(val underlying: S) extends AnyVal:
 
     def length = underlying._1
 
-    def markToStay() =
+    def mark() =
         if(!(eq(top) || eq(bottom))) then 
             underlying._3 = 1
 
+    def unmark() = 
+        if(!(eq(top) || eq(bottom))) then
+            underlying._3 = 0
     def isGarbage: Boolean =
         underlying._3 == 0
 
@@ -165,18 +168,13 @@ object NativeString:
 
 
     def prepareNextGCIteration(): Unit =
-        allocatedStrings.foreach(s =>
-            if(!(s.eq(top) || s.eq(bottom))) then 
-                s.underlying._3 = 0)
+        allocatedStrings.foreach(_.unmark())
 
     def gc(): Unit =
         val garbage = allocatedStrings.filter(_.isGarbage)
-        println(garbage)
-        println(allocatedStrings)
-        println()
         garbage.foreach(s =>
-            s.deallocate()
-            allocatedStrings -= s)
+            allocatedStrings -= s
+            s.deallocate())
         prepareNextGCIteration()
 
     def deallocateExcept(stay: ListBuffer[NativeString]): Unit =
@@ -185,6 +183,5 @@ object NativeString:
         allocatedStrings = toStay
 
     def deallocateAllStrings(): Unit =
-
         allocatedStrings.foreach(_.deallocate())
         allocatedStrings = ListBuffer.empty

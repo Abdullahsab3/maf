@@ -89,9 +89,7 @@ object AnalyzeProgram:
             with NativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp]  {
             override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with IntraGC:
-                    override def commit(): Unit =
-                        super.commit()
+                new IntraAnalysis(cmp) with BigStepModFIntra with IntraGC
 
         }
 
