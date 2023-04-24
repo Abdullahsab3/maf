@@ -2,13 +2,13 @@ package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{Identifier, Monad}
+import maf.gc.DsGC
 import maf.language.CScheme.CSchemeParser
 import maf.language.scheme.*
 import maf.modular.{DependencyTracking, ModAnalysis}
-import maf.modular.scheme.modf.{SimpleSchemeModFAnalysis, SchemeModFNoSensitivity, SchemeModFComponent}
-
-import maf.modular.worklist.{FIFOWorklistAlgorithm}
-import maf.util.Reader
+import maf.modular.scheme.modf.{SchemeModFComponent, SchemeModFNoSensitivity, SimpleSchemeModFAnalysis}
+import maf.modular.worklist.FIFOWorklistAlgorithm
+import maf.util.{Reader, StoreUtil}
 import maf.util.benchmarks.{Timeout, Timer}
 
 import scala.concurrent.duration.*
@@ -83,21 +83,16 @@ object AnalyzeProgram:
     // Used by webviz.
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
+
+            with DsGC[SchemeExp]
             with SchemeModFNoSensitivity
             with NativeSchemeDomain
-            with DependencyTracking[SchemeExp]
-            with FIFOWorklistAlgorithm[SchemeExp] {
+            with FIFOWorklistAlgorithm[SchemeExp]  {
             override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
-            override def writeAddr(addr: Address, value: HMap): Boolean = 
-                val res = super.writeAddr(addr, value)
-                
-                println()
-                println(storeString(false))
-                println(deps)
-                println(NativeString.allocatedStrings)
-                println()
-                res
+                new IntraAnalysis(cmp) with BigStepModFIntra with IntraGC:
+                    override def commit(): Unit =
+                        super.commit()
+
         }
 
 
@@ -107,4 +102,3 @@ object AnalyzeProgram:
             )
             println(a)
             println(a.result)
-            println()

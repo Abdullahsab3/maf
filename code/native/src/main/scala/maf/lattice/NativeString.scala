@@ -1,8 +1,9 @@
 package maf.lattice
-import scalanative.unsafe._
-import scala.scalanative.libc.stdlib.{malloc, free, atol}
-import scala.scalanative.libc.string.strcmp
+import maf.lattice.NativeString.{bottom, top}
 
+import scalanative.unsafe.*
+import scala.scalanative.libc.stdlib.{atol, free, malloc}
+import scala.scalanative.libc.string.strcmp
 import scala.collection.mutable.ListBuffer
 import scalanative.unsigned.UnsignedRichInt
 import java.lang.annotation.Native
@@ -11,14 +12,22 @@ import scala.compiletime.ops.string
 
 // First field: length of the string when we have a constant. A useless number otherwise
 // second field: pointer to the memory containing the string
-type Sn_struct = CStruct2[CInt, CString]
+// third field: marked by the gc to survive the gc sweep
+type Sn_struct = CStruct3[CInt, CString, CChar]
 type S = Ptr[Sn_struct]
 
 class NativeString(val underlying: S) extends AnyVal:
 
     def length = underlying._1
 
-    def deallocate(): Unit = 
+    def markToStay() =
+        if(!(eq(top) || eq(bottom))) then 
+            underlying._3 = 1
+
+    def isGarbage: Boolean =
+        underlying._3 == 0
+
+    def deallocate(): Unit =
         free(underlying._2)
         free(underlying.asInstanceOf[Ptr[Byte]])
 
@@ -33,7 +42,10 @@ class NativeString(val underlying: S) extends AnyVal:
         val l2 = other.underlying._1
         val s1 = underlying._2
         val s2 = other.underlying._2
-        s1 == s2|| (l1 == l2 && cstrEquals(s1, s2))
+        eq(other) || (l1 == l2 && cstrEquals(s1, s2))
+
+    def eq(other: NativeString): Boolean =
+        this.underlying == other.underlying
 
     // assuming sufficient memory is allocated at dest
     private def strcpy(dest: CString, src: CString): Unit =
@@ -66,6 +78,7 @@ class NativeString(val underlying: S) extends AnyVal:
             val s = malloc(sizeof[Sn_struct]).asInstanceOf[S]
             s._1 = 1
             s._2 = malloc(substringLength.toULong + 1.toULong).asInstanceOf[CString]
+            s._3 = 0
             getUnderlyingSubString(underlying._2, s._2, from, to)
             val ns = new NativeString(s)
             NativeString.allocatedStrings += ns
@@ -86,6 +99,7 @@ class NativeString(val underlying: S) extends AnyVal:
         val stringLength = this.length + other.length
         struct._1 = stringLength  
         struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
+        struct._3 = 0
         strcpy(struct._2, underlying._2)
         strcat(struct._2, other.underlying._2, underlying._1)
         val ns = new NativeString(struct)
@@ -121,14 +135,25 @@ object NativeString:
 
     val SnSize = sizeof[Sn_struct]
 
-    val top = NativeString("top")
-    val bottom = NativeString("bottom")
+    // TODO: maybe change length to make sure these do not get compared with actual "top" and "bottom"
+    private val ignore = 20
+    val top =
+        val temp = NativeString("top")
+        temp.underlying._1 = ignore
+        temp.underlying._3 = 1
+        temp
+    val bottom =
+        val temp = NativeString("bottom")
+        temp.underlying._1 = ignore
+        temp.underlying._3 = 1
+        temp
 
     def apply(x: String): NativeString =
         val struct = malloc(SnSize).asInstanceOf[S]
         val stringLength = x.length()
         struct._1 = stringLength
         struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
+        struct._3 = 0
         var i = 0
         while(i < stringLength) do
             !(struct._2 + i) = x(i).toByte
@@ -139,7 +164,27 @@ object NativeString:
         ns  
 
 
-    def deallocateAllStrings() = 
+    def prepareNextGCIteration(): Unit =
+        allocatedStrings.foreach(s =>
+            if(!(s.eq(top) || s.eq(bottom))) then 
+                s.underlying._3 = 0)
+
+    def gc(): Unit =
+        val garbage = allocatedStrings.filter(_.isGarbage)
+        println(garbage)
+        println(allocatedStrings)
+        println()
+        garbage.foreach(s =>
+            s.deallocate()
+            allocatedStrings -= s)
+        prepareNextGCIteration()
+
+    def deallocateExcept(stay: ListBuffer[NativeString]): Unit =
+        val toStay = stay ++ ListBuffer(top, bottom)
+        (allocatedStrings diff toStay).foreach(_.deallocate())
+        allocatedStrings = toStay
+
+    def deallocateAllStrings(): Unit =
 
         allocatedStrings.foreach(_.deallocate())
         allocatedStrings = ListBuffer.empty

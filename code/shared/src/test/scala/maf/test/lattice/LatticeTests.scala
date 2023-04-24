@@ -134,6 +134,7 @@ abstract class StringLatticeTest[S: StringLattice, I: IntLattice](gen: LatticeGe
                     conditional(subsumes(c, b), subsumes(append(a, c), append(a, b)) && subsumes(append(c, a), append(b, a)))
                 }
             }
+            
    
             /** Append is sound */
             p.property("∀ a, b: append(inject(a), inject(b)) ⊑ inject(a ++ b)") =

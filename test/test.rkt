@@ -10,4 +10,4 @@
   (set! x a)
   (string-append a a))
 
-(string-append (another-dep) x)
+(string-append (another-dep) (return-the-string))

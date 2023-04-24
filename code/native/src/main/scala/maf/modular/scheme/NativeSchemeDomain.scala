@@ -17,5 +17,6 @@ object NativeSchemeDomain extends ModularSchemeLatticeWrapper:
     final val primitives = new SchemeLatticePrimitives()(modularLattice.schemeLattice)
 
 trait NativeSchemeDomain extends ModularSchemeDomain:
+    
     val modularLatticeWrapper = NativeSchemeDomain
     override def domainName: String = "modular native Scheme domain"

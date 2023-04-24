@@ -1,0 +1,220 @@
+Analysis of test/test.rkt 
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 1 addresses (primitive addresses excluded).
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(
+    AddrDep(PrmAddr(string-append)) -> Set(main), 
+    AddrDep(another-dep@8:10[None]) -> Set(main), 
+    AddrDep(ret (another-dep [ε])) -> Set(main))
+ListBuffer(top, bottom)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 2 addresses (primitive addresses excluded).
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {()}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(
+    AddrDep(PrmAddr(string-append)) -> Set(main), 
+    AddrDep(another-dep@8:10[None]) -> Set(main), 
+    AddrDep(ret (another-dep [ε])) -> Set(main))
+ListBuffer(top, bottom)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 3 addresses (primitive addresses excluded).
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {()}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(
+    AddrDep(PrmAddr(string-append)) -> Set(main), 
+    AddrDep(another-dep@8:10[None]) -> Set(main), 
+    AddrDep(ret (another-dep [ε])) -> Set(main))
+ListBuffer(top, bottom)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 4 addresses (primitive addresses excluded).
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {()}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(
+    AddrDep(PrmAddr(string-append)) -> Set(main), 
+    AddrDep(another-dep@8:10[None]) -> Set(main), 
+    AddrDep(ret (another-dep [ε])) -> Set(main))
+ListBuffer(top, bottom)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 5 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {()}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(
+    AddrDep(another-dep@8:10[None]) -> Set(main), 
+    AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), 
+    AddrDep(ret (another-dep [ε])) -> Set(main), 
+    AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), 
+    AddrDep(PrmAddr(string-append)) -> Set(main))
+ListBuffer(top, bottom, hello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 6 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}01
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {()}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(
+    AddrDep(another-dep@8:10[None]) -> Set(main), 
+    AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), 
+    AddrDep(ret (another-dep [ε])) -> Set(main), 
+    AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), 
+    AddrDep(PrmAddr(string-append)) -> Set(main))
+ListBuffer(top, bottom, hello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 7 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {()}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(
+    AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε]), 
+    AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), 
+    AddrDep(another-dep@8:10[None]) -> Set(main), 
+    AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), 
+    AddrDep(ret (another-dep [ε])) -> Set(main), 
+    AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), 
+    AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 7 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {(),Pointers{PtrAddr("hello")[Some(ε)]}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε]), AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), AddrDep(another-dep@8:10[None]) -> Set(main), AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), AddrDep(ret (another-dep [ε])) -> Set(main), AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 8 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+PtrAddr((string-append a a))[Some(ε)]             : {hellohello}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {(),Pointers{PtrAddr("hello")[Some(ε)]}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε]), AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), AddrDep(another-dep@8:10[None]) -> Set(main), AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), AddrDep(ret (another-dep [ε])) -> Set(main), AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 9 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+PtrAddr((string-append a a))[Some(ε)]             : {hellohello}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (another-dep [ε])                             : {Pointers{PtrAddr((string-append a a))[Some(ε)]}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {(),Pointers{PtrAddr("hello")[Some(ε)]}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε]), AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), AddrDep(another-dep@8:10[None]) -> Set(main), AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), AddrDep(ret (another-dep [ε])) -> Set(main), AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 9 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+PtrAddr((string-append a a))[Some(ε)]             : {Str}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (another-dep [ε])                             : {Pointers{PtrAddr((string-append a a))[Some(ε)]}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {(),Pointers{PtrAddr("hello")[Some(ε)]}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε]), AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), AddrDep(another-dep@8:10[None]) -> Set(main), AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), AddrDep(ret (another-dep [ε])) -> Set(main), AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello, , hello, hellohello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 10 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+PtrAddr((string-append (another-dep) x))[None]    : {Str}
+PtrAddr((string-append a a))[Some(ε)]             : {Str}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (another-dep [ε])                             : {Pointers{PtrAddr((string-append a a))[Some(ε)]}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {(),Pointers{PtrAddr("hello")[Some(ε)]}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε], main), AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), AddrDep(another-dep@8:10[None]) -> Set(main), AddrDep(x@3:9[None]) -> Set(main), AddrDep(PtrAddr((string-append a a))[Some(ε)]) -> Set(main), AddrDep(_0@13:2[None]) -> Set(main), AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), AddrDep(ret (another-dep [ε])) -> Set(main), AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello, , hello, hellohello, , hello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 11 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+PtrAddr((string-append (another-dep) x))[None]    : {Str}
+PtrAddr((string-append a a))[Some(ε)]             : {Str}
+_0@13:2[None]                                     : {Pointers{PtrAddr((string-append (another-dep) x))[None]}}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (another-dep [ε])                             : {Pointers{PtrAddr((string-append a a))[Some(ε)]}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {(),Pointers{PtrAddr("hello")[Some(ε)]}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε], main), AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), AddrDep(another-dep@8:10[None]) -> Set(main), AddrDep(x@3:9[None]) -> Set(main), AddrDep(PtrAddr((string-append a a))[Some(ε)]) -> Set(main), AddrDep(_0@13:2[None]) -> Set(main), AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), AddrDep(ret (another-dep [ε])) -> Set(main), AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello, , hello, hellohello, , hello)
+
+
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+The store contains 12 addresses (primitive addresses excluded).
+PtrAddr("hello")[Some(ε)]                         : {hello}
+PtrAddr((string-append (another-dep) x))[None]    : {Str}
+PtrAddr((string-append a a))[Some(ε)]             : {Str}
+_0@13:2[None]                                     : {Pointers{PtrAddr((string-append (another-dep) x))[None]}}
+a@9:11[Some(ε)]                                   : {Pointers{PtrAddr("hello")[Some(ε)]}}
+another-dep@8:10[None]                            : {Closures{another-dep}}
+call-the-other-proc@5:10[None]                    : {Closures{call-the-other-proc}}
+ret (another-dep [ε])                             : {Pointers{PtrAddr((string-append a a))[Some(ε)]}}
+ret (main)                                        : {Pointers{PtrAddr((string-append (another-dep) x))[None]}}
+ret (return-the-string [ε])                       : {Pointers{PtrAddr("hello")[Some(ε)]}}
+return-the-string@1:10[None]                      : {Closures{return-the-string}}
+x@3:9[None]                                       : {(),Pointers{PtrAddr("hello")[Some(ε)]}}
+σσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσσ
+Map(AddrDep(PtrAddr("hello")[Some(ε)]) -> Set(another-dep [ε], main), AddrDep(a@9:11[Some(ε)]) -> Set(another-dep [ε]), AddrDep(another-dep@8:10[None]) -> Set(main), AddrDep(x@3:9[None]) -> Set(main), AddrDep(PtrAddr((string-append a a))[Some(ε)]) -> Set(main), AddrDep(_0@13:2[None]) -> Set(main), AddrDep(ret (return-the-string [ε])) -> Set(another-dep [ε]), AddrDep(ret (another-dep [ε])) -> Set(main), AddrDep(return-the-string@1:10[None]) -> Set(another-dep [ε]), AddrDep(PrmAddr(string-append)) -> Set(main, another-dep [ε]))
+ListBuffer(top, bottom, hello, , hello, hellohello, , hello, hellohello, , hello)
