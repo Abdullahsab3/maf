@@ -58,38 +58,38 @@ object NativeLattice:
         val bottom: T
         val top: T
         def join(x: T, y: => T): T =
-            // exhaust all the possibilities in order to know x and y are "constants" at the end
-
-            if(x == top || y == top) then top
-            else if (y == bottom) then x
-            else if (x == bottom) then y
+            if(x == top) then top
+            else if(x == bottom) then y
+            else if(y == top) then top
+            else if(y == bottom) then x
             else if(x == y) then x
             else top
+            
 
         def meet(x: T, y: => T): T = 
-            if(x == bottom) then bottom
-            else if(y == bottom) then bottom
+            if(x == bottom || y == bottom) then bottom
             else if(x == top) then y
             else if(y == top) then x
             else if(x == y) then x
             else bottom
 
         def subsumes(x: T, y: => T): Boolean =
-            x == top || y != top || y == bottom || x != bottom || x == y
+            // werkt niet! als y constante is, dan is y != top true
+            // idem x != bottom
+            // x == top || y != top || y == bottom || x != bottom || x == y
 
-            /**
-             * if(x == top) then true
-             * else if(y == top) then false
-             * else if(y == bottom) then true
-             * else if(x == bottom) then false
-             * else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
-             *
-             */
+            if(x == top) then true
+            else if(y == top) then false
+            else if(y == bottom) then true
+            else if(x == bottom) then false
+            else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
+             
+             
 
         def eql[B2: BoolLattice](n1: T, n2: T): B2 =
             if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
             else if (n1 == top || n2 == top) then BoolLattice[B2].top
-            else BoolLattice[B2].inject(n1 == n2)
+            else BoolLattice[B2].inject(n1 == n2)   
 
         
 
@@ -99,9 +99,23 @@ object NativeLattice:
             private def CChar2Boolean(i: B): Boolean = 
                 i == 1.toByte
             
-            val top = 3
-            val bottom = 2
-            def inject(b: Boolean): B = if b then 1 else 0
+            val top = 4.toByte
+            val bottom = 2.toByte
+            def inject(b: Boolean): B = (if b then 1 else 0).toByte
+
+            def isTrue(b: B): Boolean = 
+                if(b == top) then true
+                else if(b == bottom) then false
+                else b == 1.toByte
+
+            def isFalse(b: B): Boolean = 
+                if(b == top) then true
+                else if(b == bottom) then false
+                else b != 1.toByte
+            def not(b: B): B = 
+                if(b < bottom) then inject(b != 1)
+                else b
+/*          
             def isTrue(b: B): Boolean = 
                 import boolLatticeOps.boolIsTrue
                 val result = boolIsTrue(b)
@@ -119,20 +133,20 @@ object NativeLattice:
             override def meet(x: B, y: => B): B =
                 import boolLatticeOps.boolMeet
                 boolMeet(x, y)
+
             override def subsumes(x: B, y: => B): Boolean =
                 import boolLatticeOps.boolSubsumes
                 val result = boolSubsumes(x, y)
-                CChar2Boolean(result)
+                CChar2Boolean(result) */
             override def show(x: B): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
                 else CChar2Boolean(x).toString
         }
         
-        // Ptr[CStruct2[CInt, CString]]
+
 
         implicit val StringLL2: AbstractBaseInstance[String, S2] with StringLattice[S2] = new AbstractBaseInstance[String, S2]("Str") with StringLattice[S2] {
-
 
             override def show(x: S2): String =
                 if(x == top) then typeName
@@ -211,10 +225,7 @@ object NativeLattice:
 
         implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
 
-
             override def join(x: S, y: => S): S =
-            // exhaust all the possibilities in order to know x and y are "constants" at the end
-
                 if (x.eq(top) || y.eq(top)) then top
                 else if (y.eq(bottom)) then x
                 else if (x.eq(bottom)) then y
@@ -237,7 +248,17 @@ object NativeLattice:
 
 
             override def subsumes(x: S, y: => S): Boolean =
-                x.eq(top) || !(y.eq(top)) || y.eq(bottom) || !(x.eq(bottom)) ||  x == y
+            // werkt niet! als y constante is, dan is y != top true
+            // idem x != bottom
+            //x.eq(top) || !(y.eq(top)) || y.eq(bottom) || !(x.eq(bottom)) ||  x == y
+
+                if(x.eq(top)) then true
+                else if(y.eq(top)) then false
+                else if(y.eq(bottom)) then true
+                else if(x.eq(bottom)) then false
+                else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
+                
+               
 
 
             override def show(x: S): String =

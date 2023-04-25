@@ -103,7 +103,7 @@ object AnalyzeProgram:
 
     def main(args: Array[String]): Unit = 
             val a = runAnalysis(
-                "test/test.rkt", program => newNativeAnalysisWScalaStrings(program), () => Timeout.start(Duration(1, MINUTES))
+                "test/test.rkt", program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES))
             )
             println(a)
             println(a.result)

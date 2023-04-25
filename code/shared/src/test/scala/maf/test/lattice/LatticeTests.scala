@@ -95,6 +95,8 @@ abstract class BoolLatticeTest[B: BoolLattice](gen: LatticeGenerator[B]) extends
                 /** Not is involutive */
                 p.property("∀ a: not(not(a)) == a") = forAll((a: B) => not(not(a)) == a)
                 p
+                
+               
             }
         }
     checkAll(boolLaws)
