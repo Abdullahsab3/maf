@@ -1,6 +1,5 @@
 package maf.cli.runnables
 
-import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{Identifier, Monad}
 import maf.gc.NativeGC
 import maf.language.CScheme.CSchemeParser
@@ -15,7 +14,7 @@ import scala.concurrent.duration.*
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
-import maf.modular.scheme.NativeSchemeDomain
+import maf.modular.scheme.{NativeDomainWSStrings, NativeSchemeDomain}
 import maf.core.Address
 import maf.lattice._
 
@@ -83,7 +82,6 @@ object AnalyzeProgram:
     // Used by webviz.
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
-
             with NativeGC[SchemeExp]
             with SchemeModFNoSensitivity
             with NativeSchemeDomain
@@ -93,10 +91,19 @@ object AnalyzeProgram:
 
         }
 
+    def newNativeAnalysisWScalaStrings(program: SchemeExp) =
+        new SimpleSchemeModFAnalysis(program)
+            with SchemeModFNoSensitivity
+            with NativeDomainWSStrings
+            with FIFOWorklistAlgorithm[SchemeExp] {
+            override def intraAnalysis(cmp: SchemeModFComponent) =
+                new IntraAnalysis(cmp) with BigStepModFIntra
+        }
+
 
     def main(args: Array[String]): Unit = 
             val a = runAnalysis(
-                "test/test.rkt", program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES))
+                "test/test.rkt", program => newNativeAnalysisWScalaStrings(program), () => Timeout.start(Duration(1, MINUTES))
             )
             println(a)
             println(a.result)

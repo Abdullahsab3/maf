@@ -1,13 +1,12 @@
 package maf.cli.runnables
 
-import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{Identifier, Monad}
 import maf.language.CScheme.CSchemeParser
 import maf.language.scheme.*
 import maf.modular.{DependencyTracking, ModAnalysis}
 import maf.modular.scheme.modf.{SimpleSchemeModFAnalysis, SchemeModFNoSensitivity, SchemeModFComponent}
 
-import maf.modular.worklist.{FIFOWorklistAlgorithm}
+import maf.modular.worklist.FIFOWorklistAlgorithm
 import maf.util.Reader
 import maf.util.benchmarks.{Timeout, Timer}
 

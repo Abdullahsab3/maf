@@ -3,7 +3,6 @@ package maf.cli.experiments.preprocessing
 import maf.language.scheme.*
 import maf.language.scheme.primitives.SchemePrelude
 import maf.language.CScheme.*
-import maf.bench.scheme.*
 import maf.util.Reader
 import maf.core.Identity
 import scala.util.Try

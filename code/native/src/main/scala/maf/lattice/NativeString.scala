@@ -32,8 +32,9 @@ class NativeString(val underlying: S) extends AnyVal:
         underlying._3 == 0
 
     def deallocate(): Unit =
-        free(underlying._2)
-        free(underlying.asInstanceOf[Ptr[Byte]])
+        if(!(eq(top) || eq(bottom))) then
+            free(underlying._2)
+            free(underlying.asInstanceOf[Ptr[Byte]])
 
     // assuming lengths are equals
     @tailrec
@@ -186,9 +187,6 @@ object NativeString:
             s.deallocate())
         //prepareNextGCIteration()
 
-    def deallocateExcept(stay: ListBuffer[NativeString]): Unit =
-        (allocatedStrings diff stay).foreach(_.deallocate())
-        allocatedStrings = stay
 
     def deallocateAllStrings(): Unit =
         allocatedStrings.foreach(_.deallocate())

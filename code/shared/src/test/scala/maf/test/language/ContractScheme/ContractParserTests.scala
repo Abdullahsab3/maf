@@ -4,7 +4,6 @@ import maf.test._
 import maf.util._
 import maf.language.ContractScheme._
 import maf.core._
-import maf.bench.scheme.SchemeBenchmarkPrograms
 
 trait ContractParserTestsSpec extends SchemeBenchmarkTests:
     // TODO[small] abstract this away into a ParserTestsSpec that is paramatrized over the parser (also see SchemeParserTestsSpec)

@@ -1,6 +1,5 @@
 package maf.test.language.scheme
 
-import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.Identity
 import maf.language.CScheme._
 import maf.language.scheme._

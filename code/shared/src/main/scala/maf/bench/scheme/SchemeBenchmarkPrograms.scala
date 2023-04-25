@@ -31,6 +31,12 @@ object SchemeBenchmarkPrograms:
         val base = root.getAbsolutePath.nn.length - directory.length
         files(root).filter(!_.isDirectory).map(_.getAbsolutePath.nn.substring(base).nn).toSet -- exclude.map(file => s"$directory/$file")
 
+    def fromFolders(directories: List[String]): List[String] =
+        directories.flatMap(directory =>
+            fromFolder(directory)()
+        )
+
+
     // Only include certain listed programs.
     def toFolder(directory: String)(include: String*): Set[String] = include.map(file => s"$directory/$file").toSet
 

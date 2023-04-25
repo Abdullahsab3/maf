@@ -229,7 +229,7 @@ object MAFLogger:
         sys.env.get("LOG_ENV").getOrElse("local") match
             case "local" => configs(LogEnvironment.Local)
             case "ci"    => configs(LogEnvironment.CI)
-            case "bench" => configs(LogEnvironment.Benchmarking)
+            case "maf/bench" => configs(LogEnvironment.Benchmarking)
             case env     => throw new Exception(s"invalid logging environment $env")
 
     private var disabled: Boolean = false

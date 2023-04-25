@@ -1,6 +1,5 @@
 package maf.test.modular.scheme
 
-import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.language.scheme._
 import maf.language.symbolic.lattices.*
 import maf.modular._

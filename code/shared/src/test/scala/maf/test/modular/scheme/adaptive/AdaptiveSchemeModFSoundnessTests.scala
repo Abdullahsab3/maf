@@ -1,7 +1,6 @@
 package maf.test.modular.scheme.adaptive
 
 import maf.test.modular.scheme._
-import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.language.scheme._
 import maf.modular.adaptive._
 import maf.modular.adaptive.scheme._
