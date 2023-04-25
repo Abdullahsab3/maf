@@ -7,6 +7,7 @@ import scala.scalanative.libc.string.strcmp
 import scala.collection.mutable.ListBuffer
 import scalanative.unsigned.UnsignedRichInt
 import java.lang.annotation.Native
+import scala.annotation.tailrec
 import scala.compiletime.ops.string
 
 
@@ -35,7 +36,8 @@ class NativeString(val underlying: S) extends AnyVal:
         free(underlying.asInstanceOf[Ptr[Byte]])
 
     // assuming lengths are equals
-    def cstrEquals(s1: CString, s2: CString): Boolean =
+    @tailrec
+    private def cstrEquals(s1: CString, s2: CString): Boolean =
         if(!s1 == 0.toByte) then true
         else if (!s1 != !s2) then false
         else cstrEquals(s1 + 1, s2 + 1)
@@ -51,6 +53,7 @@ class NativeString(val underlying: S) extends AnyVal:
         this.underlying == other.underlying
 
     // assuming sufficient memory is allocated at dest
+    @tailrec
     private def strcpy(dest: CString, src: CString): Unit =
         if(!src == 0.toByte) then
             !dest == 0.toByte
@@ -60,6 +63,7 @@ class NativeString(val underlying: S) extends AnyVal:
 
 
     // assuming sufficient memory is allcoated at dest
+    @tailrec
     private def strcat(dest: CString, src: CString, destlength: Int): Unit = 
         if(!src == 0.toByte) then
             !(dest + destlength) = 0.toByte
@@ -67,33 +71,38 @@ class NativeString(val underlying: S) extends AnyVal:
             !(dest + destlength) = !src
             strcat(dest + 1, src + 1, destlength)
 
+
+
     private def getUnderlyingSubString(s: CString, sub: CString, from: Int, to: Int): Unit =
-        var i = 0
-        while(i < to) do
-            !(sub + i) = !(s + from + i - 1)
-        !(sub + i) = 0.toByte // 0-terminated string in C
+        @tailrec
+        def buildSubString(s: CString, sub: CString, i: Int): Unit =
+            if(!s == 0.toByte || i == to) then
+                !sub = 0.toByte
+            else
+                !sub = !s
+                buildSubString(s + 1, sub + 1, i + 1)
+        buildSubString(s + from, sub, from)
 
 
     def substring(from: CInt, to: CInt): NativeString =
         val stringLength = underlying._1
         if(from < stringLength && to < stringLength && from < to) then
-            val substringLength = to - from + 1
-            val s = malloc(sizeof[Sn_struct]).asInstanceOf[S]
-            s._1 = 1
-            s._2 = malloc(substringLength.toULong + 1.toULong).asInstanceOf[CString]
-            s._3 = 0
-            getUnderlyingSubString(underlying._2, s._2, from, to)
-            val ns = new NativeString(s)
+            val substringLength = to - from
+            val sub = malloc(sizeof[Sn_struct]).asInstanceOf[S]
+            sub._1 = substringLength
+            sub._2 = malloc(substringLength.toULong + 1.toULong).asInstanceOf[CString]
+            sub._3 = 0
+            getUnderlyingSubString(underlying._2, sub._2, from, to)
+            val ns = new NativeString(sub)
             NativeString.allocatedStrings += ns
             ns
         else
             NativeString.top
 
-    def ref(i: CInt): CChar = 
-        var c = 0
+    def ref(i: CInt): CChar =
         val stringLength = underlying._1
         if(i < stringLength) then
-            !(underlying._2 + c)
+            !(underlying._2 + i)
         else 
             0.toByte
         
