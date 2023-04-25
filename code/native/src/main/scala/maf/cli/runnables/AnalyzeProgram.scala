@@ -2,7 +2,7 @@ package maf.cli.runnables
 
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{Identifier, Monad}
-import maf.gc.DsGC
+import maf.gc.NativeGC
 import maf.language.CScheme.CSchemeParser
 import maf.language.scheme.*
 import maf.modular.{DependencyTracking, ModAnalysis}
@@ -84,12 +84,12 @@ object AnalyzeProgram:
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
 
-            with DsGC[SchemeExp]
+            with NativeGC[SchemeExp]
             with SchemeModFNoSensitivity
             with NativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp]  {
             override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with IntraGC
+                new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
 
         }
 

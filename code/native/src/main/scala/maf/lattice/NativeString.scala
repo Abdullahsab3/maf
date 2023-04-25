@@ -175,12 +175,11 @@ object NativeString:
         garbage.foreach(s =>
             allocatedStrings -= s
             s.deallocate())
-        prepareNextGCIteration()
+        //prepareNextGCIteration()
 
     def deallocateExcept(stay: ListBuffer[NativeString]): Unit =
-        val toStay = stay ++ ListBuffer(top, bottom)
-        (allocatedStrings diff toStay).foreach(_.deallocate())
-        allocatedStrings = toStay
+        (allocatedStrings diff stay).foreach(_.deallocate())
+        allocatedStrings = stay
 
     def deallocateAllStrings(): Unit =
         allocatedStrings.foreach(_.deallocate())
