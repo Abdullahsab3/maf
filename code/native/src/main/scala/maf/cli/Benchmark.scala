@@ -99,6 +99,7 @@ object  Benchmark:
      * Second arg: number of warmup iterations
      * rest of args (optionally) paths to folders to be benchmarked
      */
+        println("Benchmarking using Scala Native. version built on 25-04 16:00")
         if (args.length < 2) then
             println("Pleas specify how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
         else

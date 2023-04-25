@@ -13,6 +13,7 @@ import org.scalatest.propspec.AnyPropSpec
 
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration._
+import maf.bench.scheme.{SchemeBenchmarkPrograms, IncrementalSchemeBenchmarkPrograms, ContractBenchmarkPrograms}
 
 class InterpreterTests() extends AnyPropSpec:
 

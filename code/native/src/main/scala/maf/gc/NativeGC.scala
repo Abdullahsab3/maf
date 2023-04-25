@@ -22,7 +22,6 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
             (k, v) =>
                 v match
                     case str: modularLattice.Str =>
-                        println(str.s)
                         str.s.asInstanceOf[NativeString].mark()
                     case _ => /* None */
         )
@@ -31,7 +30,6 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
             (k, v) =>
                 v match
                     case str: modularLattice.Str =>
-                        println(str.s)
                         str.s.asInstanceOf[NativeString].unmark()
                     case _ => /* None */
         )

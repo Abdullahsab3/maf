@@ -9,6 +9,7 @@ import maf.modular.scheme.modf.{SimpleSchemeModFAnalysis, SchemeModFNoSensitivit
 import maf.modular.worklist.FIFOWorklistAlgorithm
 import maf.util.Reader
 import maf.util.benchmarks.{Timeout, Timer}
+import maf.bench.scheme._
 
 import scala.concurrent.duration.*
 

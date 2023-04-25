@@ -1,76 +1,36 @@
 package maf.cli.runnables
 
+import maf.bench.Measurement
+import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{Identifier, Monad}
 import maf.language.CScheme.CSchemeParser
 import maf.language.scheme.*
 import maf.modular.{DependencyTracking, ModAnalysis}
-import maf.modular.scheme.modf.{SimpleSchemeModFAnalysis, SchemeModFNoSensitivity, SchemeModFComponent}
-
+import maf.modular.scheme.modf.{SchemeModFComponent, SchemeModFNoSensitivity, SimpleSchemeModFAnalysis}
 import maf.modular.worklist.FIFOWorklistAlgorithm
 import maf.util.Reader
-import maf.util.benchmarks.{Timeout, Timer, Clock}
-
+import maf.util.benchmarks.{Clock, Timeout, Timer}
 import scala.concurrent.duration.*
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
 import maf.modular.scheme.SchemeConstantPropagationDomain
 import scala.collection.mutable.ListBuffer
-import java.io.PrintWriter
 import java.io.File
 
-object  Benchmark extends App:
+object  Benchmark:
 
-    var testFiles = "test/R5RS/icp"
-    
-    var bench: List[String] = SchemeBenchmarkPrograms.fromFolder(testFiles)().toList
-    var parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
-
-    var results: ListBuffer[Long] = ListBuffer.empty ++ bench.map(_ => 0)
-
-    def updateBench =
-        bench = SchemeBenchmarkPrograms.fromFolder(testFiles)().toList
-        parsedPrograms = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
-        results = ListBuffer.empty ++ bench.map(_ => 0)
-
-    var warmupskipped = false
-
-    /**
-      * USAGE: 
-        First argument:
-            -wut: include the warmup time in the results
-            -nwut(default): warmup time excluded 
-        Second argument:
-            path to folder including test files
-            no path provided: icp 
-
-      */
-
-    var rounds = 50
-    def warmupRounds: Int = (0.10 * rounds).toInt
-    if(args.length > 1) then
-        val warmupFlag =  args(0)
-        if(warmupFlag == "-wut") then warmupskipped = true
-        else warmupskipped = false
-        if(args.length > 2) then
-            testFiles = args(1)
-            updateBench
-        if(args.length > 3) then
-            rounds = args(2).toInt
-
-
-
-    def runAnalysis[A <: ModAnalysis[SchemeExp]](index: Int, analysis: SchemeExp => A, timeout: () => Timeout.T): A =
-        val text = parsedPrograms(index)
-        val pr = bench(index)
+    def runAnalysis[A <: ModAnalysis[SchemeExp]](bench: String, text: SchemeExp, analysis: SchemeExp => A, timeout: () => Timeout.T): Double =
+        var t = -1.0
         val a = analysis(text)
-        print(s"Analysis of $pr ")
+        print(s"Analysis of $bench ")
         try {
             val time = Timer.timeOnly {
                 a.analyzeWithTimeout(timeout())
-            }
-            results(index) = results(index) + time
+            }.toDouble
+            t = time / 1000000
             println(s"terminated in ${time / 1000000} ms.")
+
         } catch {
             case t: Throwable =>
                 println(s"raised exception.")
@@ -78,8 +38,7 @@ object  Benchmark extends App:
                 t.printStackTrace()
                 System.err.flush()
         }
-        a
-
+        t
 
     def newStandardAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
@@ -90,22 +49,59 @@ object  Benchmark extends App:
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
         }
-    
 
-    var i = 0
-    while(i < rounds) do
-        if (i == warmupRounds && warmupskipped) then warmupskipped = true
-        var j = 0
-        while(j < bench.length) do
-            runAnalysis(j ,program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES)))
-            j = j + 1
-        i = i + 1
-    
-    println("------------- RESULTS ---------------")
-    
-    val writer = PrintWriter(File(s"results${Clock.nowStr()}.txt"))
-    writer.write(s"JVMCPDomain\n")
-    for((name, result) <- bench.zip(results)) do 
-        writer.write(s"$name    |   total: ${result / 1000000000} s\n")
-        
 
+    def newCPAnalysis(program: SchemeExp) =
+        new SimpleSchemeModFAnalysis(program)
+            with SchemeModFNoSensitivity
+            with SchemeConstantPropagationDomain
+            with DependencyTracking[SchemeExp]
+            with FIFOWorklistAlgorithm[SchemeExp] {
+            override def intraAnalysis(cmp: SchemeModFComponent) =
+                new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
+        }
+
+    val analyses: Map[String, SchemeExp => ModAnalysis[SchemeExp]] =
+        Map("CP" -> newCPAnalysis)
+
+
+    def main(args: Array[String]): Unit =
+    /**
+     * USAGE:
+     * First arg: number of iterations
+     * Second arg: number of warmup iterations
+     * rest of args (optionally) paths to folders to be benchmarked
+     */
+        if (args.length < 2) then
+            println("Pleas specify how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
+        else
+            val rounds = args(0).toInt
+            val warmup = args(1).toInt
+            val testFiles: ListBuffer[String] = ListBuffer()
+            if (args.length > 2) then
+                val folders = args.slice(2, args.length)
+                testFiles ++= folders
+            else
+                testFiles += "test/R5RS/icp"
+            val bench: List[String] = SchemeBenchmarkPrograms.fromFolders(testFiles.toList)
+            val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
+            val measurements: Map[String, Map[String, Measurement]] =
+                analyses.map((analysisName, f) =>
+                    (analysisName -> bench.map((filename) => (filename -> Measurement(warmup, analysisName, filename))).toMap)
+                )
+
+            analyses.foreach((name, analysis) =>
+                println(s"benchmarking of: $name")
+                var i = 0
+                while (i < rounds) do
+                    var j = 0
+                    while (j < bench.length) do
+                        val t = runAnalysis(bench(j), parsedPrograms(j), analysis, () => Timeout.start(Duration(1, MINUTES)))
+                        measurements(name)(bench(j)).addMeasurement(t)
+                        j = j + 1
+                    i = i + 1
+                println())
+
+            measurements.foreach((s, m) => m.foreach((f, measurement) =>
+                measurement.calculate()
+                println(measurement.toString())))

@@ -60,15 +60,27 @@ class NativeStringTest extends AnyFlatSpec with should.Matchers {
     "++" should "append two strings together" in {
         val aplusb = aNS ++ bNS
         assert(aplusb == NativeString(Scalaa ++ Scalab))
+        assert(aplusb.length == (Scalaa ++ Scalab).length)
 
         val aplusempty = aNS ++ emptyNS
         assert(aplusempty == NativeString(Scalaa ++ ""))
+        assert(aplusempty.length == (Scalaa ++ "").length)
 
         val emptyplusa = emptyNS ++ aNS
         assert(emptyplusa == NativeString("" ++ Scalaa))
+        assert(emptyplusa.length == ("" ++ Scalaa).length)
 
         val aplusa = aNS ++ aNS
         assert(aplusa == NativeString(Scalaa ++ Scalaa))
+        assert(aplusa.length == (Scalaa ++ Scalaa).length)
+
+    }
+
+    "++" should "be associative. This is a sanity check" in {
+        val t1 = NativeString("62\\-<#f")
+        val t2 = NativeString("2N:?s*^r#")
+        val t3 = NativeString("L&[")
+        assert((t1 ++ t2) ++ t3 == t1 ++ (t2 ++ t3))
     }
 
     "replace" should "produce a NativeString with a new c in an index i" in  {

@@ -1,6 +1,7 @@
 package maf.test
 
 import maf.util.datastructures.SmartUnion
+import maf.bench.scheme.{SchemeBenchmarkPrograms, IncrementalSchemeBenchmarkPrograms, ContractBenchmarkPrograms}
 
 trait VariousSequentialBenchmarks extends SchemeBenchmarkTests:
     override def benchmarks: Set[Benchmark] = SmartUnion.sunion(super.benchmarks, SchemeBenchmarkPrograms.various)

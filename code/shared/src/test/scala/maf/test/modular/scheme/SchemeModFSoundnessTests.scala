@@ -8,6 +8,7 @@ import maf.modular.scheme.modf._
 import maf.modular.worklist._
 import maf.test._
 import maf.language.symbolic.Formula
+import maf.bench.scheme.{SchemeBenchmarkPrograms, IncrementalSchemeBenchmarkPrograms, ContractBenchmarkPrograms}
 
 trait SchemeModFSoundnessTests extends SchemeSoundnessTests:
     override def testTags(b: Benchmark) = super.testTags(b) :+ SchemeModFTest
