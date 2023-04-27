@@ -50,6 +50,8 @@ class NativeString(val underlying: S) extends AnyVal:
         val s2 = other.underlying._2
         eq(other) || (l1 == l2 && cstrEquals(s1, s2))
 
+    // Referential equality.
+    // two values are referring to the same object
     def eq(other: NativeString): Boolean =
         this.underlying == other.underlying
 
@@ -150,12 +152,13 @@ object NativeString:
 
     // TODO: maybe change length to make sure these do not get compared with actual "top" and "bottom"
     private val ignore = 20
-    val top =
+    var top: NativeString =
         val temp = NativeString("top")
         temp.underlying._1 = ignore
         temp.underlying._3 = 1
         temp
-    val bottom =
+
+    var bottom: NativeString =
         val temp = NativeString("bottom")
         temp.underlying._1 = ignore
         temp.underlying._3 = 1
@@ -174,11 +177,36 @@ object NativeString:
         !(struct._2 + stringLength) = 0.toByte
         val ns = new NativeString(struct)
         allocatedStrings += ns
-        ns  
+        ns
+
+
+    def freeBounds(): Unit =
+        free(top.underlying._2)
+        free(top.underlying.asInstanceOf[Ptr[Byte]])
+        free(bottom.underlying._2)
+        free(bottom.underlying.asInstanceOf[Ptr[Byte]])
+
+    def freshBounds(): Unit =
+        top =
+            val temp = NativeString("top")
+            temp.underlying._1 = ignore
+            temp.underlying._3 = 1
+            temp
+
+        bottom =
+            val temp = NativeString("bottom")
+            temp.underlying._1 = ignore
+            temp.underlying._3 = 1
+            temp
 
 
     def prepareNextGCIteration(): Unit =
         allocatedStrings.foreach(_.unmark())
+
+    def initializeMemory(): Unit =
+        freshBounds()
+
+
 
     def gc(): Unit =
         val garbage = allocatedStrings.filter(_.isGarbage)
@@ -189,5 +217,6 @@ object NativeString:
 
 
     def deallocateAllStrings(): Unit =
+        freeBounds()
         allocatedStrings.foreach(_.deallocate())
         allocatedStrings = ListBuffer.empty

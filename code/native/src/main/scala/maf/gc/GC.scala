@@ -13,9 +13,15 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
      * When the inter-analysis is finished, deallocate all the memory that is still allocated for this program.
      */
     override def run(timeout: Timeout.T): Unit =
+        initializeMemory()
         super.run(timeout)
         emptyMemory()
 
+    /**
+     * Initializes the memory before each program analysis.
+     * 
+     */
+    def initializeMemory(): Unit
     /**
      * Deallocates all the memory that is still allocated for the program
      */

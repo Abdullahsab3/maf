@@ -14,6 +14,8 @@ import scala.collection.mutable.ListBuffer
 
 trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with NativeSchemeDomain with GlobalStore[Expr] { inter =>
 
+    def initializeMemory(): Unit =
+        NativeString.initializeMemory()
     def emptyMemory(): Unit =
         NativeString.deallocateAllStrings()
 
@@ -42,7 +44,6 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
 
         def gc(): Unit =
             NativeString.gc()
-
 
     }
 
