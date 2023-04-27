@@ -23,14 +23,12 @@ object  Benchmark:
     def runAnalysis[A <: ModAnalysis[SchemeExp]](bench: String, text: SchemeExp, analysis: SchemeExp => A, timeout: () => Timeout.T): Double =
         var t = -1.0
         val a = analysis(text)
-        print(s"Analysis of $bench ")
         try {
             val time = Timer.timeOnly {
                 a.analyzeWithTimeout(timeout())
             }.toDouble
             t = time / 1000000
-            println(s"terminated in ${time / 1000000} ms.")
-
+    
         } catch {
             case t: Throwable =>
                 println(s"raised exception.")
@@ -39,18 +37,7 @@ object  Benchmark:
                 System.err.flush()
         }
         t
-
-    def newStandardAnalysis(program: SchemeExp) =
-        new SimpleSchemeModFAnalysis(program)
-            with SchemeModFNoSensitivity
-            with SchemeConstantPropagationDomain
-            with DependencyTracking[SchemeExp]
-            with FIFOWorklistAlgorithm[SchemeExp] {
-            override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
-        }
-
-
+    
     def newCPAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
             with SchemeModFNoSensitivity
@@ -63,45 +50,38 @@ object  Benchmark:
 
     val analyses: Map[String, SchemeExp => ModAnalysis[SchemeExp]] =
         Map("CP" -> newCPAnalysis)
-
-
+    
     def main(args: Array[String]): Unit =
-    /**
-     * USAGE:
-     * First arg: number of iterations
-     * Second arg: number of warmup iterations
-     * rest of args (optionally) paths to folders to be benchmarked
-     */
-        if (args.length < 2) then
-            println("Pleas specify how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
+        if (args.length < 3) then
+            println("Pleas specify the strategy, how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
+            println(s"strategies: ${analyses.keySet}")
         else
-            val rounds = args(0).toInt
-            val warmup = args(1).toInt
+            val strategy = args(0)
+            val rounds = args(1).toInt
+            val warmup = args(2).toInt
             val testFiles: ListBuffer[String] = ListBuffer()
-            if (args.length > 2) then
-                val folders = args.slice(2, args.length)
+            if (args.length > 3) then
+                val folders = args.slice(3, args.length)
                 testFiles ++= folders
             else
                 testFiles += "test/R5RS/icp"
+            println(s"Analysing $strategy with $rounds rounds and $warmup warmup rounds using $testFiles")
             val bench: List[String] = SchemeBenchmarkPrograms.fromFolders(testFiles.toList)
             val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
-            val measurements: Map[String, Map[String, Measurement]] =
-                analyses.map((analysisName, f) =>
-                    (analysisName -> bench.map((filename) => (filename -> Measurement(warmup, analysisName, filename))).toMap)
-                )
-
-            analyses.foreach((name, analysis) =>
-                println(s"benchmarking of: $name")
-                var i = 0
-                while (i < rounds) do
-                    var j = 0
-                    while (j < bench.length) do
-                        val t = runAnalysis(bench(j), parsedPrograms(j), analysis, () => Timeout.start(Duration(1, MINUTES)))
-                        measurements(name)(bench(j)).addMeasurement(t)
-                        j = j + 1
-                    i = i + 1
-                println())
-
-            measurements.foreach((s, m) => m.foreach((f, measurement) =>
-                measurement.calculate()
-                println(measurement.toString())))
+            var measurement : Option[Measurement] = None
+            
+            
+            var analysis = analyses(strategy)
+            var i = 0
+            while (i < bench.length) do
+                val filename = bench(i)
+                measurement = Some(Measurement(warmup, strategy, filename))
+                var j = 0
+                while (j < rounds) do
+                    val t = runAnalysis(filename, parsedPrograms(i), analysis, () => Timeout.start(Duration(1, MINUTES)))
+                    measurement.get.addMeasurement(t)
+                    j = j + 1
+                measurement.get.calculate()
+                println(measurement.get.toString())
+                i = i + 1
+            println()

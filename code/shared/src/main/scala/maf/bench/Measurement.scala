@@ -13,7 +13,7 @@ class Measurement(warmup: Int, strategy: String, file: String):
     var measurements: ListBuffer[Double] = ListBuffer()
 
     def calculate(): Unit =
-        val noWarmupmMasurements = measurements.slice(0, measurements.length - warmup)
+        val noWarmupmMasurements = measurements.slice(warmup, measurements.length)
         measurements = noWarmupmMasurements
 
         mean = Some(computeAvg)

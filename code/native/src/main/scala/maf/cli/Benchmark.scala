@@ -96,39 +96,37 @@ object  Benchmark:
 
 
     def main(args: Array[String]): Unit =
-    /**
-     * USAGE:
-     * First arg: number of iterations
-     * Second arg: number of warmup iterations
-     * rest of args (optionally) paths to folders to be benchmarked
-     * if no args are specified, the test/R5RS/icp folder will be selected
-     */
-        if (args.length < 2) then
-            println("Pleas specify how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
+
+        if (args.length < 3) then
+            println("Pleas specify the strategy, how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
+            println(s"strategies: ${analyses.keySet}")
         else
-            val rounds = args(0).toInt
-            val warmup = args(1).toInt
+            val strategy = args(0)
+            val rounds = args(1).toInt
+            val warmup = args(2).toInt
             val testFiles: ListBuffer[String] = ListBuffer()
-            if (args.length > 2) then
-                val folders = args.slice(2, args.length)
+            if (args.length > 3) then
+                val folders = args.slice(3, args.length)
                 testFiles ++= folders
             else
                 testFiles += "test/R5RS/icp"
+            println(s"Analysing $strategy with $rounds rounds and $warmup warmup rounds using $testFiles")
             val bench: List[String] = SchemeBenchmarkPrograms.fromFolders(testFiles.toList)
             val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
             var measurement : Option[Measurement] = None
-
-            analyses.foreach((name, analysis) =>
-                var i = 0
-                while (i < bench.length) do
-                    val filename = bench(i)
-                    measurement = Some(Measurement(warmup, name, filename))
-                    var j = 0
-                    while (j < rounds) do
-                        val t = runAnalysis(filename, parsedPrograms(i), analysis, () => Timeout.start(Duration(1, MINUTES)))
-                        measurement.get.addMeasurement(t)
-                        j = j + 1
-                    measurement.get.calculate()
-                    println(measurement.get.toString())
-                    i = i + 1
-                println())
+            
+            
+            var analysis = analyses(strategy)
+            var i = 0
+            while (i < bench.length) do
+                val filename = bench(i)
+                measurement = Some(Measurement(warmup, strategy, filename))
+                var j = 0
+                while (j < rounds) do
+                    val t = runAnalysis(filename, parsedPrograms(i), analysis, () => Timeout.start(Duration(1, MINUTES)))
+                    measurement.get.addMeasurement(t)
+                    j = j + 1
+                measurement.get.calculate()
+                println(measurement.get.toString())
+                i = i + 1
+            println()
