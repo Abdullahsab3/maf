@@ -8,6 +8,7 @@ import scala.collection.mutable.ListBuffer
 import scalanative.unsigned.UnsignedRichInt
 import java.lang.annotation.Native
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.compiletime.ops.string
 
 
@@ -146,11 +147,10 @@ class NativeString(val underlying: S) extends AnyVal:
         fromCString(underlying._2)
 
 object NativeString:
-    var allocatedStrings : ListBuffer[NativeString] = ListBuffer.empty
+    var allocatedStrings : mutable.HashSet[NativeString] = mutable.HashSet.empty
 
     val SnSize = sizeof[Sn_struct]
 
-    // TODO: maybe change length to make sure these do not get compared with actual "top" and "bottom"
     private val ignore = 20
     var top: NativeString =
         val temp = NativeString("top")
@@ -179,7 +179,6 @@ object NativeString:
         allocatedStrings += ns
         ns
 
-
     def freeBounds(): Unit =
         free(top.underlying._2)
         free(top.underlying.asInstanceOf[Ptr[Byte]])
@@ -200,23 +199,18 @@ object NativeString:
             temp
 
 
-    def prepareNextGCIteration(): Unit =
-        allocatedStrings.foreach(_.unmark())
 
     def initializeMemory(): Unit =
-        freshBounds()
 
-
+        allocatedStrings = mutable.HashSet.empty
+       // freshBounds()
 
     def gc(): Unit =
         val garbage = allocatedStrings.filter(_.isGarbage)
         garbage.foreach(s =>
             allocatedStrings -= s
             s.deallocate())
-        //prepareNextGCIteration()
 
 
     def deallocateAllStrings(): Unit =
-        freeBounds()
         allocatedStrings.foreach(_.deallocate())
-        allocatedStrings = ListBuffer.empty

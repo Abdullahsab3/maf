@@ -9,6 +9,8 @@ import maf.modular.scheme.modf.{SchemeModFComponent, SchemeModFNoSensitivity, Si
 import maf.modular.worklist.FIFOWorklistAlgorithm
 import maf.util.{Reader, StoreUtil}
 import maf.util.benchmarks.{Timeout, Timer}
+import maf.modular.scheme.SchemeConstantPropagationDomain
+
 
 import scala.concurrent.duration.*
 
@@ -77,18 +79,27 @@ object AnalyzeProgram:
         "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
         "test/R5RS/icp/icp_8_compiler.scm")
 
-   // val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
-
-    // Used by webviz.
-    def newStandardAnalysis(program: SchemeExp) =
+    def newNativeAnalysisWithGC(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
             with NativeGC[SchemeExp]
             with SchemeModFNoSensitivity
             with NativeSchemeDomain
-            with FIFOWorklistAlgorithm[SchemeExp]  {
+            with FIFOWorklistAlgorithm[SchemeExp] {
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
+        }
 
+    def newNativeAnalysisWoGC(program: SchemeExp) =
+        new SimpleSchemeModFAnalysis(program)
+            with SchemeModFNoSensitivity
+            with NativeSchemeDomain
+            with FIFOWorklistAlgorithm[SchemeExp] {
+            override def intraAnalysis(cmp: SchemeModFComponent) =
+                new IntraAnalysis(cmp) with BigStepModFIntra
+
+            override def run(timeout: Timeout.T): Unit =
+                super.run(timeout)
+                NativeString.deallocateAllStrings()
         }
 
     def newNativeAnalysisWScalaStrings(program: SchemeExp) =
@@ -101,9 +112,20 @@ object AnalyzeProgram:
         }
 
 
-    def main(args: Array[String]): Unit = 
-            val a = runAnalysis(
-                "test/test.rkt", program => newStandardAnalysis(program), () => Timeout.start(Duration(1, MINUTES))
-            )
-            println(a)
-            println(a.result)
+    def newCPAnalysis(program: SchemeExp) =
+        new SimpleSchemeModFAnalysis(program)
+            with SchemeModFNoSensitivity
+            with SchemeConstantPropagationDomain
+            with DependencyTracking[SchemeExp]
+            with FIFOWorklistAlgorithm[SchemeExp] {
+            override def intraAnalysis(cmp: SchemeModFComponent) =
+                new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
+        }
+
+    def main(args: Array[String]): Unit =
+        val a = runAnalysis(
+            "test/test.rkt", program => newNativeAnalysisWithGC(program), () => Timeout.start(Duration(1, MINUTES))
+        )
+        println(a)
+        println(a.result)
+        NativeString.freeBounds()

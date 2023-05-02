@@ -1,476 +1,727 @@
-;; Taken from "Structure and Interpratation of Computer Programs" (H. Abelson, G. J. Sussman, J. Sussman) 2nd Edition
-;; The result should be true (#t).
-;; Adapted by translating all calls to the list primitive into calls to cons since list is not supported by MAF.
-;; Adapted by working around an unknown number of arguments for append-instruction-sequences.
-(define true #t)
-(define false #f)
-
-(define (self-evaluating? exp)
-  (cond ((number? exp) true)
-        ((string? exp) true)
-        (else false)))
-
-
-(define (quoted? exp)
-  (tagged-list? exp 'quote))
-
-(define (text-of-quotation exp) (cadr exp))
-
-(define (tagged-list? exp tag)
-  (if (pair? exp)
-      (eq? (car exp) tag)
-      false))
-
-
-(define (variable? exp) (symbol? exp))
-
-(define (assignment? exp)
-  (tagged-list? exp 'set!))
-
-(define (assignment-variable exp) (cadr exp))
-
-(define (assignment-value exp) (caddr exp))
-
-
-(define (definition? exp)
-  (tagged-list? exp 'define))
-
-(define (definition-variable exp)
-  (if (symbol? (cadr exp))
-      (cadr exp)
-      (caadr exp)))
-
-(define (definition-value exp)
-  (if (symbol? (cadr exp))
-      (caddr exp)
-      (make-lambda (cdadr exp)
-                   (cddr exp))))
-
-(define (lambda? exp) (tagged-list? exp 'lambda))
-
-(define (lambda-parameters exp) (cadr exp))
-(define (lambda-body exp) (cddr exp))
-
-(define (make-lambda parameters body)
-  (cons 'lambda (cons parameters body)))
-
-(define (if? exp) (tagged-list? exp 'if))
-
-(define (if-predicate exp) (cadr exp))
-
-(define (if-consequent exp) (caddr exp))
-
-(define (if-alternative exp)
-  (if (not (null? (cdddr exp)))
-      (cadddr exp)
-      'false))
-
-
-(define (begin? exp) (tagged-list? exp 'begin))
-(define (begin-actions exp) (cdr exp))
-
-(define (last-exp? seq) (null? (cdr seq)))
-(define (first-exp seq) (car seq))
-(define (rest-exps seq) (cdr seq))
-
-(define (application? exp) (pair? exp))
-(define (operator exp) (car exp))
-(define (operands exp) (cdr exp))
-
-(define (no-operands? ops) (null? ops))
-(define (first-operand ops) (car ops))
-(define (rest-operands ops) (cdr ops))
-
-(define (make-if predicate consequent alternative)
-  (cons 'if (cons predicate (cons consequent (cons alternative '())))))
-
-
-(define (sequence->exp seq)
-  (cond ((null? seq) seq)
-        ((last-exp? seq) (first-exp seq))
-        (else (make-begin seq))))
-
-(define (make-begin seq) (cons 'begin seq))
-
-(define (cond? exp) (tagged-list? exp 'cond))
-(define (cond-clauses exp) (cdr exp))
-(define (cond-else-clause? clause)
-  (eq? (cond-predicate clause) 'else))
-(define (cond-predicate clause) (car clause))
-(define (cond-actions clause) (cdr clause))
-
-(define (cond->if exp)
-  (expand-clauses (cond-clauses exp)))
-
-(define (expand-clauses clauses)
-  (if (null? clauses)
-      'false
-      (let ((first (car clauses))
-            (rest (cdr clauses)))
-        (if (cond-else-clause? first)
-            (if (null? rest)
-                (sequence->exp (cond-actions first))
-                (error "ELSE clause isn't last -- COND->IF"
-                       clauses))
-            (make-if (cond-predicate first)
-                     (sequence->exp (cond-actions first))
-                     (expand-clauses rest))))))
-
-(define (compile exp target linkage)
-  (cond ((self-evaluating? exp)
-         (compile-self-evaluating exp target linkage))
-        ((quoted? exp) (compile-quoted exp target linkage))
-        ((variable? exp)
-         (compile-variable exp target linkage))
-        ((assignment? exp)
-         (compile-assignment exp target linkage))
-        ((definition? exp)
-         (compile-definition exp target linkage))
-        ((if? exp) (compile-if exp target linkage))
-        ((lambda? exp) (compile-lambda exp target linkage))
-        ((begin? exp)
-         (compile-sequence (begin-actions exp)
-                           target
-                           linkage))
-        ((cond? exp) (compile (cond->if exp) target linkage))
-        ((application? exp)
-         (compile-application exp target linkage))
-        (else
-         (error "Unknown expression type -- COMPILE" exp))))
-
-
-(define (make-instruction-sequence needs modifies statements)
-  (cons needs (cons modifies (cons statements '()))))
-
-(define (empty-instruction-sequence)
-  (make-instruction-sequence '() '() '()))
-
-(define (compile-linkage linkage)
-  (cond ((eq? linkage 'return)
-         (make-instruction-sequence '(continue) '()
-                                    '((goto (reg continue)))))
-        ((eq? linkage 'next)
-         (empty-instruction-sequence))
-        (else
-         (make-instruction-sequence '() '()
-                                    `((goto (label ,linkage)))))))
-
-(define (end-with-linkage linkage instruction-sequence)
-  (preserving '(continue)
-              instruction-sequence
-              (compile-linkage linkage)))
-
-(define (compile-self-evaluating exp target linkage)
-  (end-with-linkage linkage
-                    (make-instruction-sequence '() (cons target '())
-                                               `((assign ,target (const ,exp))))))
-
-(define (compile-quoted exp target linkage)
-  (end-with-linkage linkage
-                    (make-instruction-sequence '() (cons target '())
-                                               `((assign ,target (const ,(text-of-quotation exp)))))))
-
-(define (compile-variable exp target linkage)
-  (end-with-linkage linkage
-                    (make-instruction-sequence '(env) (cons target '())
-                                               `((assign ,target
-                                                         (op lookup-variable-value)
-                                                         (const ,exp)
-                                                         (reg env))))))
-
-(define (compile-assignment exp target linkage)
-  (let ((var (assignment-variable exp))
-        (get-value-code
-         (compile (assignment-value exp) 'val 'next)))
-    (end-with-linkage linkage
-                      (preserving '(env)
-                                  get-value-code
-                                  (make-instruction-sequence '(env val) (cons target '())
-                                                             `((perform (op set-variable-value!)
-                                                                        (const ,var)
-                                                                        (reg val)
-                                                                        (reg env))
-                                                               (assign ,target (const ok))))))))
-
-(define (compile-definition exp target linkage)
-  (let ((var (definition-variable exp))
-        (get-value-code
-         (compile (definition-value exp) 'val 'next)))
-    (end-with-linkage linkage
-                      (preserving '(env)
-                                  get-value-code
-                                  (make-instruction-sequence '(env val) (cons target '())
-                                                             `((perform (op define-variable!)
-                                                                        (const ,var)
-                                                                        (reg val)
-                                                                        (reg env))
-                                                               (assign ,target (const ok))))))))
-
-(define label-counter 0)
-
-(define (new-label-number)
-  (set! label-counter (+ 1 label-counter))
-  label-counter)
-
-(define (make-label name)
-  (string->symbol
-   (string-append (symbol->string name)
-                  (number->string (new-label-number)))))
-
-(define (compile-if exp target linkage)
-  (let ((t-branch (make-label 'true-branch))
-        (f-branch (make-label 'false-branch))
-        (after-if (make-label 'after-if)))
-    (let ((consequent-linkage
-           (if (eq? linkage 'next) after-if linkage)))
-      (let ((p-code (compile (if-predicate exp) 'val 'next))
-            (c-code
-             (compile
-              (if-consequent exp) target consequent-linkage))
-            (a-code
-             (compile (if-alternative exp) target linkage)))
-        (preserving '(env continue)
-                    p-code
-                    (append-instruction-sequences
-                     (cons (make-instruction-sequence '(val) '()
-                                                      `((test (op false?) (reg val))
-                                                        (branch (label ,f-branch))))
-                           (cons (parallel-instruction-sequences
-                                  (append-instruction-sequences t-branch c-code)
-                                  (append-instruction-sequences f-branch a-code))
-                                 (cons after-if '())))))))))
-
-(define (compile-sequence seq target linkage)
-  (if (last-exp? seq)
-      (compile (first-exp seq) target linkage)
-      (preserving '(env continue)
-                  (compile (first-exp seq) target 'next)
-                  (compile-sequence (rest-exps seq) target linkage))))
-
-(define (compile-lambda exp target linkage)
-  (let ((proc-entry (make-label 'entry))
-        (after-lambda (make-label 'after-lambda)))
-    (let ((lambda-linkage
-           (if (eq? linkage 'next) after-lambda linkage)))
-      (append-instruction-sequences
-       (cons (tack-on-instruction-sequence
-              (end-with-linkage lambda-linkage
-                                (make-instruction-sequence '(env) (cons target '())
-                                                           `((assign ,target
-                                                                     (op make-compiled-procedure)
-                                                                     (label ,proc-entry)
-                                                                     (reg env)))))
-              (compile-lambda-body exp proc-entry))
-             (cons after-lambda '()))))))
-
-(define (compile-lambda-body exp proc-entry)
-  (let ((formals (lambda-parameters exp)))
-    (append-instruction-sequences
-     (cons (make-instruction-sequence '(env proc argl) '(env)
-                                      `(,proc-entry
-                                        (assign env (op compiled-procedure-env) (reg proc))
-                                        (assign env
-                                                (op extend-environment)
-                                                (const ,formals)
-                                                (reg argl)
-                                                (reg env))))
-           (cons (compile-sequence (lambda-body exp) 'val 'return) '())))))
-
-(define (compile-application exp target linkage)
-  (let ((proc-code (compile (operator exp) 'proc 'next))
-        (operand-codes
-         (map (lambda (operand) (compile operand 'val 'next))
-              (operands exp))))
-    (preserving '(env continue)
-                proc-code
-                (preserving '(proc continue)
-                            (construct-arglist operand-codes)
-                            (compile-procedure-call target linkage)))))
-
-(define (construct-arglist operand-codes)
-  (let ((operand-codes (reverse operand-codes)))
-    (if (null? operand-codes)
-        (make-instruction-sequence '() '(argl)
-                                   '((assign argl (const ()))))
-        (let ((code-to-get-last-arg
-               (append-instruction-sequences
-                (cons (car operand-codes)
-                      (cons (make-instruction-sequence '(val) '(argl)
-                                                       '((assign argl (op list) (reg val)))) '())))))
-          (if (null? (cdr operand-codes))
-              code-to-get-last-arg
-              (preserving '(env)
-                          code-to-get-last-arg
-                          (code-to-get-rest-args
-                           (cdr operand-codes))))))))
-
-(define (code-to-get-rest-args operand-codes)
-  (let ((code-for-next-arg
-         (preserving '(argl)
-                     (car operand-codes)
-                     (make-instruction-sequence '(val argl) '(argl)
-                                                '((assign argl
-                                                          (op cons) (reg val) (reg argl)))))))
-    (if (null? (cdr operand-codes))
-        code-for-next-arg
-        (preserving '(env)
-                    code-for-next-arg
-                    (code-to-get-rest-args (cdr operand-codes))))))
-
-(define (compile-procedure-call target linkage)
-  (let ((primitive-branch (make-label 'primitive-branch))
-        (compiled-branch (make-label 'compiled-branch))
-        (after-call (make-label 'after-call)))
-    (let ((compiled-linkage
-           (if (eq? linkage 'next) after-call linkage)))
-      (append-instruction-sequences
-       (cons (make-instruction-sequence '(proc) '()
-                                        `((test (op primitive-procedure?) (reg proc))
-                                          (branch (label ,primitive-branch))))
-             (cons (parallel-instruction-sequences
-                    (append-instruction-sequences
-                     (cons compiled-branch
-                           (cons (compile-proc-appl target compiled-linkage) '())))
-                    (append-instruction-sequences
-                     (cons primitive-branch
-                           (cons (end-with-linkage linkage
-                                                   (make-instruction-sequence '(proc argl)
-                                                                              (cons target '())
-                                                                              `((assign ,target
-                                                                                        (op apply-primitive-procedure)
-                                                                                        (reg proc)
-                                                                                        (reg argl)))))
-                                 '()))))
-                   (cons after-call '())))))))
-
-(define (compile-proc-appl target linkage)
-  (cond ((and (eq? target 'val) (not (eq? linkage 'return)))
-         (make-instruction-sequence '(proc) all-regs
-                                    `((assign continue (label ,linkage))
-                                      (assign val (op compiled-procedure-entry)
-                                              (reg proc))
-                                      (goto (reg val)))))
-        ((and (not (eq? target 'val))
-              (not (eq? linkage 'return)))
-         (let ((proc-return (make-label 'proc-return)))
-           (make-instruction-sequence '(proc) all-regs
-                                      `((assign continue (label ,proc-return))
-                                        (assign val (op compiled-procedure-entry)
-                                                (reg proc))
-                                        (goto (reg val))
-                                        ,proc-return
-                                        (assign ,target (reg val))
-                                        (goto (label ,linkage))))))
-        ((and (eq? target 'val) (eq? linkage 'return))
-         (make-instruction-sequence '(proc continue) all-regs
-                                    '((assign val (op compiled-procedure-entry)
-                                              (reg proc))
-                                      (goto (reg val)))))
-        ((and (not (eq? target 'val)) (eq? linkage 'return))
-         (error "return linkage, target not val -- COMPILE"
-                target))))
-
-(define all-regs '(env proc val argl continue))
-
-(define (registers-needed s)
-  (if (symbol? s) '() (car s)))
-
-(define (registers-modified s)
-  (if (symbol? s) '() (cadr s)))
-
-(define (statements s)
-  (if (symbol? s) (cons s '()) (caddr s)))
-
-(define (needs-register? seq reg)
-  (memq reg (registers-needed seq)))
-
-(define (modifies-register? seq reg)
-  (memq reg (registers-modified seq)))
-
-
-(define (append-instruction-sequences seqs)
-  (define (append-2-sequences seq1 seq2)
-    (make-instruction-sequence
-     (list-union (registers-needed seq1)
-                 (list-difference (registers-needed seq2)
-                                  (registers-modified seq1)))
-     (list-union (registers-modified seq1)
-                 (registers-modified seq2))
-     (append (statements seq1) (statements seq2))))
-  (define (append-seq-list seqs)
-    (if (null? seqs)
-        (empty-instruction-sequence)
-        (append-2-sequences (car seqs)
-                            (append-seq-list (cdr seqs)))))
-  (append-seq-list seqs))
-
-(define (list-union s1 s2)
-  (cond ((null? s1) s2)
-        ((memq (car s1) s2) (list-union (cdr s1) s2))
-        (else (cons (car s1) (list-union (cdr s1) s2)))))
-
-(define (list-difference s1 s2)
-  (cond ((null? s1) '())
-        ((memq (car s1) s2) (list-difference (cdr s1) s2))
-        (else (cons (car s1)
-                    (list-difference (cdr s1) s2)))))
-
-(define (preserving regs seq1 seq2)
-  (if (null? regs)
-      (append-instruction-sequences (cons seq1 (cons seq2 '())))
-      (let ((first-reg (car regs)))
-        (if (and (needs-register? seq2 first-reg)
-                 (modifies-register? seq1 first-reg))
-            (preserving (cdr regs)
-                        (make-instruction-sequence
-                         (list-union (cons first-reg '())
-                                     (registers-needed seq1))
-                         (list-difference (registers-modified seq1)
-                                          (cons first-reg '()))
-                         (append `((save ,first-reg))
-                                 (statements seq1)
-                                 `((restore ,first-reg))))
-                        seq2)
-            (preserving (cdr regs) seq1 seq2)))))
-
-(define (tack-on-instruction-sequence seq body-seq)
-  (make-instruction-sequence
-   (registers-needed seq)
-   (registers-modified seq)
-   (append (statements seq) (statements body-seq))))
-
-(define (parallel-instruction-sequences seq1 seq2)
-  (make-instruction-sequence
-   (list-union (registers-needed seq1)
-               (registers-needed seq2))
-   (list-union (registers-modified seq1)
-               (registers-modified seq2))
-   (append (statements seq1) (statements seq2))))
-
-(let ((result1 (compile '(define x 4) 'val 'return))
-      (expected-result1 '((env continue) (val) ((assign val (const 4)) (perform (op define-variable!) (const x) (reg val) (reg env)) (assign val (const ok)) (goto (reg continue)))))
-      (result2 (compile '(lambda (x y) (* x y)) 'next 'val))
-      (expected-result2 '((env)
-                          (next)
-                          ((assign next (op make-compiled-procedure) (label entry1) (reg env))
-                           (goto (label val))
-                           entry1
-                           (assign env (op compiled-procedure-env) (reg proc))
-                           (assign env (op extend-environment) (const (x y)) (reg argl) (reg env))
-                           (assign proc (op lookup-variable-value) (const *) (reg env))
-                           (assign val (op lookup-variable-value) (const y) (reg env))
-                           (assign argl (op list) (reg val))
-                           (assign val (op lookup-variable-value) (const x) (reg env))
-                           (assign argl (op cons) (reg val) (reg argl))
-                           (test (op primitive-procedure?) (reg proc))
-                           (branch (label primitive-branch3))
-                           compiled-branch4
-                           (assign val (op compiled-procedure-entry) (reg proc))
-                           (goto (reg val))
-                           primitive-branch3
-                           (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
-                           (goto (reg continue))
-                           after-call5
-                           after-lambda2))))
-  (and (equal? result1 expected-result1)
-       (equal? result2 expected-result2)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; File:         nboyer.sch
+; Description:  The Boyer benchmark
+; Author:       Bob Boyer
+; Created:      5-Apr-85
+; Modified:     10-Apr-85 14:52:20 (Bob Shaw)
+;               22-Jul-87 (Will Clinger)
+;               2-Jul-88 (Will Clinger -- distinguished #f and the empty list)
+;               13-Feb-97 (Will Clinger -- fixed bugs in unifier and rules,
+;                          rewrote to eliminate property lists, and added
+;                          a scaling parameter suggested by Bob Boyer)
+;               19-Mar-99 (Will Clinger -- cleaned up comments)
+; Language:     Scheme
+; Status:       Public Domain
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; NBOYER -- Logic programming benchmark, originally written by Bob Boyer.
+;;; Fairly CONS intensive.
+
+; Note:  The version of this benchmark that appears in Dick Gabriel's book
+; contained several bugs that are corrected here.  These bugs are discussed
+; by Henry Baker, "The Boyer Benchmark Meets Linear Logic", ACM SIGPLAN Lisp
+; Pointers 6(4), October-December 1993, pages 3-10.  The fixed bugs are:
+;
+;    The benchmark now returns a boolean result.
+;    FALSEP and TRUEP use TERM-MEMBER? rather than MEMV (which is called MEMBER
+;         in Common Lisp)
+;    ONE-WAY-UNIFY1 now treats numbers correctly
+;    ONE-WAY-UNIFY1-LST now treats empty lists correctly
+;    Rule 19 has been corrected (this rule was not touched by the original
+;         benchmark, but is used by this version)
+;    Rules 84 and 101 have been corrected (but these rules are never touched
+;         by the benchmark)
+;
+; According to Baker, these bug fixes make the benchmark 10-25% slower.
+; Please do not compare the timings from this benchmark against those of
+; the original benchmark.
+;
+; This version of the benchmark also prints the number of rewrites as a sanity
+; check, because it is too easy for a buggy version to return the correct
+; boolean result.  The correct number of rewrites is
+;
+;     n      rewrites       peak live storage (approximate, in bytes)
+;     0         95024           520,000
+;     1        591777         2,085,000
+;     2       1813975         5,175,000
+;     3       5375678
+;     4      16445406
+;     5      51507739
+
+; Nboyer is a 2-phase benchmark.
+; The first phase attaches lemmas to symbols.  This phase is not timed,
+; but it accounts for very little of the runtime anyway.
+; The second phase creates the test problem, and tests to see
+; whether it is implied by the lemmas.
+
+(define (main . args)
+  (let ((n (if (null? args) 0 (car args))))
+    (setup-boyer)
+    ((lambda (rewrites)
+       (and (number? rewrites)
+            (case n
+              ((0)  (= rewrites 95024))
+              ((1)  (= rewrites 591777))
+              ((2)  (= rewrites 1813975))
+              ((3)  (= rewrites 5375678))
+              ((4)  (= rewrites 16445406))
+              ((5)  (= rewrites 51507739))
+              (else #t))))
+     (test-boyer
+                   (quote ((x f (plus (plus a b)
+                                      (plus c (zero))))
+                           (y f (times (times a b)
+                                       (plus c d)))
+                           (z f (reverse (append (append a b)
+                                                 (nil))))
+                           (u equal (plus a b)
+                              (difference x y))
+                           (w lessp (remainder a b)
+                              (member a (length b)))))
+                   (quote (implies (and (implies x y)
+                                        (and (implies y z)
+                                             (and (implies z u)
+                                                  (implies u w))))
+                                   (implies x w)))
+                   4))))
+
+(define (setup-boyer) #t)
+(define (test-boyer) #t)
+
+(let ()
+
+  (define (setup)
+    (add-lemma-lst
+     (quote ((equal (compile form)
+                    (reverse (codegen (optimize form)
+                                      (nil))))
+             (equal (eqp x y)
+                    (equal (fix x)
+                           (fix y)))
+             (equal (greaterp x y)
+                    (lessp y x))
+             (equal (lesseqp x y)
+                    (not (lessp y x)))
+             (equal (greatereqp x y)
+                    (not (lessp x y)))
+             (equal (boolean x)
+                    (or (equal x (t))
+                        (equal x (f))))
+             (equal (iff x y)
+                    (and (implies x y)
+                         (implies y x)))
+             (equal (even1 x)
+                    (if (zerop x)
+                        (t)
+                        (odd (_1- x))))
+             (equal (countps- l pred)
+                    (countps-loop l pred (zero)))
+             (equal (fact- i)
+                    (fact-loop i 1))
+             (equal (reverse- x)
+                    (reverse-loop x (nil)))
+             (equal (divides x y)
+                    (zerop (remainder y x)))
+             (equal (assume-true var alist)
+                    (cons (cons var (t))
+                          alist))
+             (equal (assume-false var alist)
+                    (cons (cons var (f))
+                          alist))
+             (equal (tautology-checker x)
+                    (tautologyp (normalize x)
+                                (nil)))
+             (equal (falsify x)
+                    (falsify1 (normalize x)
+                              (nil)))
+             (equal (prime x)
+                    (and (not (zerop x))
+                         (not (equal x (add1 (zero))))
+                         (prime1 x (_1- x))))
+             (equal (and p q)
+                    (if p (if q (t)
+                              (f))
+                        (f)))
+             (equal (or p q)
+                    (if p (t)
+                        (if q (t)
+                            (f))))
+             (equal (not p)
+                    (if p (f)
+                        (t)))
+             (equal (implies p q)
+                    (if p (if q (t)
+                              (f))
+                        (t)))
+             (equal (fix x)
+                    (if (numberp x)
+                        x
+                        (zero)))
+             (equal (if (if a b c)
+                        d e)
+                    (if a (if b d e)
+                        (if c d e)))
+             (equal (zerop x)
+                    (or (equal x (zero))
+                        (not (numberp x))))
+             (equal (plus (plus x y)
+                          z)
+                    (plus x (plus y z)))
+             (equal (equal (plus a b)
+                           (zero))
+                    (and (zerop a)
+                         (zerop b)))
+             (equal (difference x x)
+                    (zero))
+             (equal (equal (plus a b)
+                           (plus a c))
+                    (equal (fix b)
+                           (fix c)))
+             (equal (equal (zero)
+                           (difference x y))
+                    (not (lessp y x)))
+             (equal (equal x (difference x y))
+                    (and (numberp x)
+                         (or (equal x (zero))
+                             (zerop y))))
+             (equal (meaning (plus-tree (append x y))
+                             a)
+                    (plus (meaning (plus-tree x)
+                                   a)
+                          (meaning (plus-tree y)
+                                   a)))
+             (equal (meaning (plus-tree (plus-fringe x))
+                             a)
+                    (fix (meaning x a)))
+             (equal (append (append x y)
+                            z)
+                    (append x (append y z)))
+             (equal (reverse (append a b))
+                    (append (reverse b)
+                            (reverse a)))
+             (equal (times x (plus y z))
+                    (plus (times x y)
+                          (times x z)))
+             (equal (times (times x y)
+                           z)
+                    (times x (times y z)))
+             (equal (equal (times x y)
+                           (zero))
+                    (or (zerop x)
+                        (zerop y)))
+             (equal (exec (append x y)
+                          pds envrn)
+                    (exec y (exec x pds envrn)
+                          envrn))
+             (equal (mc-flatten x y)
+                    (append (flatten x)
+                            y))
+             (equal (member x (append a b))
+                    (or (member x a)
+                        (member x b)))
+             (equal (member x (reverse y))
+                    (member x y))
+             (equal (length (reverse x))
+                    (length x))
+             (equal (member a (intersect b c))
+                    (and (member a b)
+                         (member a c)))
+             (equal (nth (zero)
+                         i)
+                    (zero))
+             (equal (exp i (plus j k))
+                    (times (exp i j)
+                           (exp i k)))
+             (equal (exp i (times j k))
+                    (exp (exp i j)
+                         k))
+             (equal (reverse-loop x y)
+                    (append (reverse x)
+                            y))
+             (equal (reverse-loop x (nil))
+                    (reverse x))
+             (equal (count-list z (sort-lp x y))
+                    (plus (count-list z x)
+                          (count-list z y)))
+             (equal (equal (append a b)
+                           (append a c))
+                    (equal b c))
+             (equal (plus (remainder x y)
+                          (times y (quotient x y)))
+                    (fix x))
+             (equal (power-eval (big-plus1 l i base)
+                                base)
+                    (plus (power-eval l base)
+                          i))
+             (equal (power-eval (big-plus x y i base)
+                                base)
+                    (plus i (plus (power-eval x base)
+                                  (power-eval y base))))
+             (equal (remainder y 1)
+                    (zero))
+             (equal (lessp (remainder x y)
+                           y)
+                    (not (zerop y)))
+             (equal (remainder x x)
+                    (zero))
+             (equal (lessp (quotient i j)
+                           i)
+                    (and (not (zerop i))
+                         (or (zerop j)
+                             (not (equal j 1)))))
+             (equal (lessp (remainder x y)
+                           x)
+                    (and (not (zerop y))
+                         (not (zerop x))
+                         (not (lessp x y))))
+             (equal (power-eval (power-rep i base)
+                                base)
+                    (fix i))
+             (equal (power-eval (big-plus (power-rep i base)
+                                          (power-rep j base)
+                                          (zero)
+                                          base)
+                                base)
+                    (plus i j))
+             (equal (gcd x y)
+                    (gcd y x))
+             (equal (nth (append a b)
+                         i)
+                    (append (nth a i)
+                            (nth b (difference i (length a)))))
+             (equal (difference (plus x y)
+                                x)
+                    (fix y))
+             (equal (difference (plus y x)
+                                x)
+                    (fix y))
+             (equal (difference (plus x y)
+                                (plus x z))
+                    (difference y z))
+             (equal (times x (difference c w))
+                    (difference (times c x)
+                                (times w x)))
+             (equal (remainder (times x z)
+                               z)
+                    (zero))
+             (equal (difference (plus b (plus a c))
+                                a)
+                    (plus b c))
+             (equal (difference (add1 (plus y z))
+                                z)
+                    (add1 y))
+             (equal (lessp (plus x y)
+                           (plus x z))
+                    (lessp y z))
+             (equal (lessp (times x z)
+                           (times y z))
+                    (and (not (zerop z))
+                         (lessp x y)))
+             (equal (lessp y (plus x y))
+                    (not (zerop x)))
+             (equal (gcd (times x z)
+                         (times y z))
+                    (times z (gcd x y)))
+             (equal (value (normalize x)
+                           a)
+                    (value x a))
+             (equal (equal (flatten x)
+                           (cons y (nil)))
+                    (and (nlistp x)
+                         (equal x y)))
+             (equal (listp (gopher x))
+                    (listp x))
+             (equal (samefringe x y)
+                    (equal (flatten x)
+                           (flatten y)))
+             (equal (equal (greatest-factor x y)
+                           (zero))
+                    (and (or (zerop y)
+                             (equal y 1))
+                         (equal x (zero))))
+             (equal (equal (greatest-factor x y)
+                           1)
+                    (equal x 1))
+             (equal (numberp (greatest-factor x y))
+                    (not (and (or (zerop y)
+                                  (equal y 1))
+                              (not (numberp x)))))
+             (equal (times-list (append x y))
+                    (times (times-list x)
+                           (times-list y)))
+             (equal (prime-list (append x y))
+                    (and (prime-list x)
+                         (prime-list y)))
+             (equal (equal z (times w z))
+                    (and (numberp z)
+                         (or (equal z (zero))
+                             (equal w 1))))
+             (equal (greatereqp x y)
+                    (not (lessp x y)))
+             (equal (equal x (times x y))
+                    (or (equal x (zero))
+                        (and (numberp x)
+                             (equal y 1))))
+             (equal (remainder (times y x)
+                               y)
+                    (zero))
+             (equal (equal (times a b)
+                           1)
+                    (and (not (equal a (zero)))
+                         (not (equal b (zero)))
+                         (numberp a)
+                         (numberp b)
+                         (equal (_1- a)
+                                (zero))
+                         (equal (_1- b)
+                                (zero))))
+             (equal (lessp (length (delete x l))
+                           (length l))
+                    (member x l))
+             (equal (sort2 (delete x l))
+                    (delete x (sort2 l)))
+             (equal (dsort x)
+                    (sort2 x))
+             (equal (length (cons x1
+                                  (cons x2
+                                        (cons x3 (cons x4
+                                                       (cons x5
+                                                             (cons x6 x7)))))))
+                    (plus 6 (length x7)))
+             (equal (difference (add1 (add1 x))
+                                2)
+                    (fix x))
+             (equal (quotient (plus x (plus x y))
+                              2)
+                    (plus x (quotient y 2)))
+             (equal (sigma (zero)
+                           i)
+                    (quotient (times i (add1 i))
+                              2))
+             (equal (plus x (add1 y))
+                    (if (numberp y)
+                        (add1 (plus x y))
+                        (add1 x)))
+             (equal (equal (difference x y)
+                           (difference z y))
+                    (if (lessp x y)
+                        (not (lessp y z))
+                        (if (lessp z y)
+                            (not (lessp y x))
+                            (equal (fix x)
+                                   (fix z)))))
+             (equal (meaning (plus-tree (delete x y))
+                             a)
+                    (if (member x y)
+                        (difference (meaning (plus-tree y)
+                                             a)
+                                    (meaning x a))
+                        (meaning (plus-tree y)
+                                 a)))
+             (equal (times x (add1 y))
+                    (if (numberp y)
+                        (plus x (times x y))
+                        (fix x)))
+             (equal (nth (nil)
+                         i)
+                    (if (zerop i)
+                        (nil)
+                        (zero)))
+             (equal (last (append a b))
+                    (if (listp b)
+                        (last b)
+                        (if (listp a)
+                            (cons (car (last a))
+                                  b)
+                            b)))
+             (equal (equal (lessp x y)
+                           z)
+                    (if (lessp x y)
+                        (equal (t) z)
+                        (equal (f) z)))
+             (equal (assignment x (append a b))
+                    (if (assignedp x a)
+                        (assignment x a)
+                        (assignment x b)))
+             (equal (car (gopher x))
+                    (if (listp x)
+                        (car (flatten x))
+                        (zero)))
+             (equal (flatten (cdr (gopher x)))
+                    (if (listp x)
+                        (cdr (flatten x))
+                        (cons (zero)
+                              (nil))))
+             (equal (quotient (times y x)
+                              y)
+                    (if (zerop y)
+                        (zero)
+                        (fix x)))
+             (equal (get j (set i val mem))
+                    (if (eqp j i)
+                        val
+                        (get j mem)))))))
+
+  (define (add-lemma-lst lst)
+    (cond ((null? lst)
+           #t)
+          (else (add-lemma (car lst))
+                (add-lemma-lst (cdr lst)))))
+
+  (define (add-lemma term)
+    (cond ((and (pair? term)
+                (eq? (car term)
+                     (quote equal))
+                (pair? (cadr term)))
+           (put (car (cadr term))
+                (quote lemmas)
+                (cons
+                 (translate-term term)
+                 (get (car (cadr term)) (quote lemmas)))))
+          (else (error "ADD-LEMMA did not like term "))))
+
+
+  (define (translate-term term)
+    (cond ((not (pair? term))
+           term)
+          (else (cons (symbol->symbol-record (car term))
+                      (translate-args (cdr term))))))
+
+  (define (translate-args lst)
+    (cond ((null? lst)
+           '())
+          (else (cons (translate-term (car lst))
+                      (translate-args (cdr lst))))))
+
+
+  (define (untranslate-term term)
+    (cond ((not (pair? term))
+           term)
+          (else (cons (get-name (car term))
+                      (map untranslate-term (cdr term))))))
+
+
+  (define (put sym property value)
+    (put-lemmas! (symbol->symbol-record sym) value))
+
+  (define (get sym property)
+    (get-lemmas (symbol->symbol-record sym)))
+
+  (define (symbol->symbol-record sym)
+    (let ((x (assq sym *symbol-records-alist*)))
+      (if x
+          (cdr x)
+          (let ((r (make-symbol-record sym)))
+            (set! *symbol-records-alist*
+                  (cons (cons sym r)
+                        *symbol-records-alist*))
+            r))))
+
+  (define *symbol-records-alist* '())
+
+  (define (make-symbol-record sym)
+    (cons sym '()))
+
+  (define (put-lemmas! symbol-record lemmas)
+    (set-cdr! symbol-record lemmas))
+
+  (define (get-lemmas symbol-record)
+    (cdr symbol-record))
+
+  (define (get-name symbol-record)
+    (car symbol-record))
+
+  (define (symbol-record-equal? r1 r2)
+    (eq? r1 r2))
+
+  (define (test alist term n)
+    (let ((term
+           (apply-subst
+            (translate-alist alist)
+            (translate-term
+             (do ((term term (list 'or term '(f)))
+                  (n n (- n 1)))
+               ((zero? n) term))))))
+      (tautp term)))
+
+  (define (translate-alist alist)
+    (cond ((null? alist)
+           '())
+          (else (cons (cons (caar alist)
+                            (translate-term (cdar alist)))
+                      (translate-alist (cdr alist))))))
+
+  (define (apply-subst alist term)
+    (cond ((not (pair? term))
+           (let ((temp-temp (assq term alist)))
+             (if temp-temp
+                 (cdr temp-temp)
+                 term)))
+          (else (cons (car term)
+                      (apply-subst-lst alist (cdr term))))))
+
+  (define (apply-subst-lst alist lst)
+    (cond ((null? lst)
+           '())
+          (else (cons (apply-subst alist (car lst))
+                      (apply-subst-lst alist (cdr lst))))))
+
+  (define (tautp x)
+    (tautologyp (rewrite x)
+                '() '()))
+
+  (define (tautologyp x true-lst false-lst)
+    (cond ((truep x true-lst)
+           #t)
+          ((falsep x false-lst)
+           #f)
+          ((not (pair? x))
+           #f)
+          ((eq? (car x) if-constructor)
+           (cond ((truep (cadr x)
+                         true-lst)
+                  (tautologyp (caddr x)
+                              true-lst false-lst))
+                 ((falsep (cadr x)
+                          false-lst)
+                  (tautologyp (cadddr x)
+                              true-lst false-lst))
+                 (else (and (tautologyp (caddr x)
+                                        (cons (cadr x)
+                                              true-lst)
+                                        false-lst)
+                            (tautologyp (cadddr x)
+                                        true-lst
+                                        (cons (cadr x)
+                                              false-lst))))))
+          (else #f)))
+
+  (define if-constructor '*)
+
+  (define rewrite-count 0)
+
+  (define (rewrite term)
+    (set! rewrite-count (+ rewrite-count 1))
+    (cond ((not (pair? term))
+           term)
+          (else (rewrite-with-lemmas (cons (car term)
+                                           (rewrite-args (cdr term)))
+                                     (get-lemmas (car term))))))
+
+  (define (rewrite-args lst)
+    (cond ((null? lst)
+           '())
+          (else (cons (rewrite (car lst))
+                      (rewrite-args (cdr lst))))))
+
+  (define (rewrite-with-lemmas term lst)
+    (cond ((null? lst)
+           term)
+          ((one-way-unify term (cadr (car lst)))
+           (rewrite (apply-subst unify-subst (caddr (car lst)))))
+          (else (rewrite-with-lemmas term (cdr lst)))))
+
+  (define unify-subst '*)
+
+  (define (one-way-unify term1 term2)
+    (begin (set! unify-subst '())
+           (one-way-unify1 term1 term2)))
+
+  (define (one-way-unify1 term1 term2)
+    (cond ((not (pair? term2))
+           (let ((temp-temp (assq term2 unify-subst)))
+             (cond (temp-temp
+                    (term-equal? term1 (cdr temp-temp)))
+                   ((number? term2)
+                    (equal? term1 term2))
+                   (else
+                    (set! unify-subst (cons (cons term2 term1)
+                                            unify-subst))
+                    #t))))
+          ((not (pair? term1))
+           #f)
+          ((eq? (car term1)
+                (car term2))
+           (one-way-unify1-lst (cdr term1)
+                               (cdr term2)))
+          (else #f)))
+
+  (define (one-way-unify1-lst lst1 lst2)
+    (cond ((null? lst1)
+           (null? lst2))
+          ((null? lst2)
+           #f)
+          ((one-way-unify1 (car lst1)
+                           (car lst2))
+           (one-way-unify1-lst (cdr lst1)
+                               (cdr lst2)))
+          (else #f)))
+
+  (define (falsep x lst)
+    (or (term-equal? x false-term)
+        (term-member? x lst)))
+
+  (define (truep x lst)
+    (or (term-equal? x true-term)
+        (term-member? x lst)))
+
+  (define false-term '*)
+  (define true-term '*)
+
+  (define (trans-of-implies n)
+    (translate-term
+     (list (quote implies)
+           (trans-of-implies1 n)
+           (list (quote implies)
+                 0 n))))
+
+  (define (trans-of-implies1 n)
+    (cond ((equal? n 1)
+           (list (quote implies)
+                 0 1))
+          (else (list (quote and)
+                      (list (quote implies)
+                            (- n 1)
+                            n)
+                      (trans-of-implies1 (- n 1))))))
+
+  (define (term-equal? x y)
+    (cond ((pair? x)
+           (and (pair? y)
+                (symbol-record-equal? (car x) (car y))
+                (term-args-equal? (cdr x) (cdr y))))
+          (else (equal? x y))))
+
+  (define (term-args-equal? lst1 lst2)
+    (cond ((null? lst1)
+           (null? lst2))
+          ((null? lst2)
+           #f)
+          ((term-equal? (car lst1) (car lst2))
+           (term-args-equal? (cdr lst1) (cdr lst2)))
+          (else #f)))
+
+  (define (term-member? x lst)
+    (cond ((null? lst)
+           #f)
+          ((term-equal? x (car lst))
+           #t)
+          (else (term-member? x (cdr lst)))))
+
+  (set! setup-boyer
+        (lambda ()
+          (set! *symbol-records-alist* '())
+          (set! if-constructor (symbol->symbol-record 'if))
+          (set! false-term (translate-term '(f)))
+          (set! true-term  (translate-term '(t)))
+          (setup)))
+
+  (set! test-boyer
+        (lambda (alist term n)
+          (set! rewrite-count 0)
+          (let ((answer (test alist term n)))
+            (if answer
+                rewrite-count
+                #f)))))
+
+(main 4)

@@ -20,10 +20,13 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
         NativeString.deallocateAllStrings()
 
     def markValues(value: Value): Unit =
+
         value.contents.foreach(
             (k, v) =>
                 v match
                     case str: modularLattice.Str =>
+                        str.s.asInstanceOf[NativeString].mark()
+                    case str: modularLattice.Symbol =>
                         str.s.asInstanceOf[NativeString].mark()
                     case _ => /* None */
         )
@@ -32,6 +35,8 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
             (k, v) =>
                 v match
                     case str: modularLattice.Str =>
+                        str.s.asInstanceOf[NativeString].unmark()
+                    case str: modularLattice.Symbol =>
                         str.s.asInstanceOf[NativeString].unmark()
                     case _ => /* None */
         )

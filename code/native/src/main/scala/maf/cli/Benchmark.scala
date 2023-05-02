@@ -63,7 +63,7 @@ object  Benchmark:
                 new IntraAnalysis(cmp) with BigStepModFIntra
 
             override def run(timeout: Timeout.T): Unit =
-                NativeString.freshBounds()
+               // NativeString.freshBounds()
                 super.run(timeout)
                 NativeString.deallocateAllStrings()
         }
