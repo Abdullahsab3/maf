@@ -130,3 +130,4 @@ object  Benchmark:
                 println(measurement.get.toString())
                 i = i + 1
             println()
+            NativeString.freeBounds()
