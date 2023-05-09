@@ -4,13 +4,13 @@ import maf.core.{Identifier, Monad}
 import maf.gc.NativeGC
 import maf.language.CScheme.CSchemeParser
 import maf.language.scheme.*
+import maf.modular.scheme.NativeSchemeDomain.modularLattice
 import maf.modular.{DependencyTracking, ModAnalysis}
-import maf.modular.scheme.modf.{SchemeModFComponent, SchemeModFNoSensitivity, SimpleSchemeModFAnalysis}
+import maf.modular.scheme.modf.{SchemeModFCallSiteSensitivity, SchemeModFComponent, SchemeModFNoSensitivity, SimpleSchemeModFAnalysis}
 import maf.modular.worklist.FIFOWorklistAlgorithm
 import maf.util.{Reader, StoreUtil}
 import maf.util.benchmarks.{Timeout, Timer}
 import maf.modular.scheme.SchemeConstantPropagationDomain
-
 
 import scala.concurrent.duration.*
 
@@ -79,15 +79,7 @@ object AnalyzeProgram:
         "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
         "test/R5RS/icp/icp_8_compiler.scm")
 
-    def newNativeAnalysisWithGC(program: SchemeExp) =
-        new SimpleSchemeModFAnalysis(program)
-            with NativeGC[SchemeExp]
-            with SchemeModFNoSensitivity
-            with NativeSchemeDomain
-            with FIFOWorklistAlgorithm[SchemeExp] {
-            override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
-        }
+
 
     def newNativeAnalysisWoGC(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
@@ -109,23 +101,52 @@ object AnalyzeProgram:
             with FIFOWorklistAlgorithm[SchemeExp] {
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra
-        }
 
+        }
 
     def newCPAnalysis(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
             with SchemeModFNoSensitivity
             with SchemeConstantPropagationDomain
-            with DependencyTracking[SchemeExp]
             with FIFOWorklistAlgorithm[SchemeExp] {
+            override def updateAddr(store: Map[Addr, modularLattice.L], addr: Addr, value: modularLatticeWrapper.modularLattice.L): Option[Map[Addr, modularLattice.L]] =
+              //  println(value.contents)
+                super.updateAddr(store, addr, value)
+
+
             override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with DependencyTrackingIntra
+                new IntraAnalysis(cmp) with BigStepModFIntra
+
+                
+        }
+
+
+    def newNativeAnalysisWithGC(program: SchemeExp) =
+        new SimpleSchemeModFAnalysis(program)
+            with NativeGC[SchemeExp]
+            with SchemeModFNoSensitivity
+            with NativeSchemeDomain
+            with FIFOWorklistAlgorithm[SchemeExp] {
+            override def emptyMemory(): Unit = {} /* Do Nothing */
+            override def updateAddr(store: Map[Addr, modularLattice.L], addr: Addr, value: modularLatticeWrapper.modularLattice.L): Option[Map[Addr, modularLattice.L]] =
+               // println(value.contents)
+                super.updateAddr(store, addr, value)
+            override def intraAnalysis(cmp: SchemeModFComponent) =
+                new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
+
+
         }
 
     def main(args: Array[String]): Unit =
         val a = runAnalysis(
-            "test/test.rkt", program => newNativeAnalysisWithGC(program), () => Timeout.start(Duration(1, MINUTES))
+            "test/test.rkt", program => newNativeAnalysisWithGC(program), () => Timeout.start(Duration(5, MINUTES))
         )
-        println(a)
-        println(a.result)
+        val b = runAnalysis(
+            "test/test.rkt", program => newCPAnalysis(program), () => Timeout.start(Duration(5, MINUTES))
+        )
+
+        println(a.storeString(false))
+        println()
+        println(b.storeString(false))
+        a.emptyMemory()
         NativeString.freeBounds()

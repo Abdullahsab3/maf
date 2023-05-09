@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
-const int false = 0;
-const int true = 1;
-const int bottom = 2;
-const int top = 4;
+const uint8_t false = 0;
+const uint8_t true = 1;
+const uint8_t bottom = 2;
+const uint8_t top = 4;
 
 
 uint8_t isConstant(uint8_t b)
@@ -39,7 +39,6 @@ uint8_t boolIsTrue(uint8_t b)
         return b & 1;
     } 
     return b >> 2;
-    
 }
 
 uint8_t boolIsFalse(uint8_t b)

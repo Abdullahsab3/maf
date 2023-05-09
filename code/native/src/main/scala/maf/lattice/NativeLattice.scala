@@ -39,6 +39,7 @@ object NativeLattice:
     type R = CDouble
     type C = CChar
     type Sym = NativeString
+    type Sym2 = String
 
 
     /**
@@ -58,6 +59,7 @@ object NativeLattice:
         val bottom: T
         val top: T
         def join(x: T, y: => T): T =
+
             if(x == top) then top
             else if(x == bottom) then y
             else if(y == top) then top
@@ -153,8 +155,8 @@ object NativeLattice:
                 else if(x == bottom) then s"$typeName.⊥"
                 else x
 
-            val top: S2 = "fs6f5ertezt85ezr§(è)"
-            val bottom: S2 = "er6g85esfetr985'§"
+            val top: S2 =    "fs6f5ertt85e§(è)"
+            val bottom: S2 = "er6g85esfetr98'§"
             
             def inject(x: String): S2 = x
             
@@ -565,14 +567,55 @@ object NativeLattice:
                 else BoolLattice[B2].inject(toupper(c1) < toupper(c2))
         }
 
+        implicit val symLL2: AbstractBaseInstance[String, Sym2] with SymbolLattice[Sym2] = new AbstractBaseInstance[String, Sym2]("Symbol") with SymbolLattice[Sym2] {
+            val top: S2 =    "fs6f5ertt85e§(è)"
+            val bottom: S2 = "er6g85esfetr98'§"
+
+            def inject(x: String): Sym2 = x
+            
+            def toString[S2: StringLattice](s: Sym2): S2 =
+                if(s == top) then StringLattice[S2].top
+                else if (s == bottom) then StringLattice[S2].bottom
+                else StringLattice[S2].inject(s)
+
+            override def show(x: Sym2): String =
+                if(x == top) then typeName
+                else if(x == bottom) then s"$typeName.⊥"
+                else s"'${x.toString}"
+        }
+
         // TODO: symshow
-        implicit val symLL: AbstractBaseInstance[String, Sym] with SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
+        implicit val symLL: AbstractBaseInstance[String, Sym]with SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
             
             val top: Sym = NativeString.top
             val bottom: Sym = NativeString.bottom
 
-            def inject(x: String) = NativeString(x)
+            override def join(x: Sym, y: => Sym): Sym =
+                if (x.eq(top) || y.eq(top)) then top
+                else if (y.eq(bottom)) then x
+                else if (x.eq(bottom)) then y
+                else if (x == y) then x
+                else top
 
+
+            override def eql[B2: BoolLattice](n1: Sym, n2: Sym): B2 =
+                if (n1.eq(bottom) || n2.eq(bottom)) then BoolLattice[B2].bottom
+                else if (n1.eq(top) || n2.eq(top)) then BoolLattice[B2].top
+                else BoolLattice[B2].inject(n1 == n2)
+
+            override def subsumes(x: Sym, y: => Sym): Boolean =
+            // werkt niet! als y constante is, dan is y != top true
+            // idem x != bottom
+            //x.eq(top) || !(y.eq(top)) || y.eq(bottom) || !(x.eq(bottom)) ||  x == y
+
+                if(x.eq(top)) then true
+                else if(y.eq(top)) then false
+                else if(y.eq(bottom)) then true
+                else if(x.eq(bottom)) then false
+                else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
+                
+                
+            def inject(x: String): Sym = NativeString(x)
 
             def toString[S2: StringLattice](s: Sym): S2 = 
                 if(s == top) then StringLattice[S2].top
@@ -582,5 +625,5 @@ object NativeLattice:
             override def show(x: Sym): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
-                else x.toString
+                else s"'${x.toString}"
         }

@@ -14,7 +14,8 @@ import scala.compiletime.ops.string
 
 // First field: length of the string when we have a constant. A useless number otherwise
 // second field: pointer to the memory containing the string
-// third field: marked by the gc to survive the gc sweep
+// third and fourth fields: marked by the gc to survive the gc sweep
+// the third field is for the global store, the fourth one is for the returnvalue
 type Sn_struct = CStruct3[CInt, CString, CChar]
 type S = Ptr[Sn_struct]
 
@@ -24,11 +25,14 @@ class NativeString(val underlying: S) extends AnyVal:
 
     def mark() =
         if(!(eq(top) || eq(bottom))) then 
-            underlying._3 = 1
+            underlying._3 = (underlying._3 + 1).toByte
 
-    def unmark() = 
-        if(!(eq(top) || eq(bottom))) then
-            underlying._3 = 0
+    def unmark() =
+        val ctr = underlying._3
+        if(ctr > 0) then
+            if(!(eq(top) || eq(bottom))) then
+                underlying._3 = (ctr - 1).toByte
+
     def isGarbage: Boolean =
         underlying._3 == 0
 
@@ -127,6 +131,7 @@ class NativeString(val underlying: S) extends AnyVal:
         val stringLength = underlying._1
         struct._1 = stringLength
         struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
+        struct._3 = 0
         strcpy(struct._2, underlying._2)
         !(struct._2 + i.asInstanceOf[Int]) = c.asInstanceOf[CChar]
         val ns = new NativeString(struct)
@@ -145,6 +150,9 @@ class NativeString(val underlying: S) extends AnyVal:
 
     override def toString(): String =
         fromCString(underlying._2)
+
+    def prettyString(): String =
+        s"length= $length, string = ${toString()}, mark to stay: ${underlying._3}"
 
 object NativeString:
     var allocatedStrings : mutable.HashSet[NativeString] = mutable.HashSet.empty
@@ -176,6 +184,7 @@ object NativeString:
             i = i +1
         !(struct._2 + stringLength) = 0.toByte
         val ns = new NativeString(struct)
+
         allocatedStrings += ns
         ns
 
@@ -201,7 +210,6 @@ object NativeString:
 
 
     def initializeMemory(): Unit =
-
         allocatedStrings = mutable.HashSet.empty
        // freshBounds()
 
@@ -211,6 +219,10 @@ object NativeString:
             allocatedStrings -= s
             s.deallocate())
 
+
+    def forceDeallocateString(str: NativeString): Unit =
+        allocatedStrings -= str
+        str.deallocate()
 
     def deallocateAllStrings(): Unit =
         allocatedStrings.foreach(_.deallocate())

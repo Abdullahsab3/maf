@@ -2,12 +2,12 @@ package maf.gc
 
 import maf.core.Expression
 import maf.lattice.NativeString
-import maf.modular.{AddrDependency, Dependency, GlobalStore, ModAnalysis}
+import maf.modular.{AddrDependency, Dependency, GlobalStore, ModAnalysis, ReturnAddr, ReturnValue}
 import maf.modular.scheme.NativeSchemeDomain
 import maf.modular.worklist.SequentialWorklistAlgorithm
 import maf.util.benchmarks.Timeout
 
-trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAlgorithm[Expr]  with GlobalStore[Expr]{ inter =>
+trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAlgorithm[Expr]  with GlobalStore[Expr] with ReturnValue[Expr] { inter =>
 
     /**
      * When the inter-analysis is finished, deallocate all the memory that is still allocated for this program.
@@ -15,7 +15,6 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
     override def run(timeout: Timeout.T): Unit =
         initializeMemory()
         super.run(timeout)
-        emptyMemory()
 
     /**
      * Initializes the memory before each program analysis.
@@ -26,6 +25,9 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
      * Deallocates all the memory that is still allocated for the program
      */
     def emptyMemory(): Unit
+
+
+    def emptyAnalysisMemory(): Unit
 
     /**
      * Marks the values that should not be deallocated in this GC cycle.
@@ -54,15 +56,33 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
                     unmarkValues(oldValue)
                     Some(store + (addr -> newValue))
 
+
+    def updateIntraAddr(store: Map[Addr, Value], addr: Addr, value: Value): Option[Map[Addr, Value]] =
+        store.get(addr) match
+            case None if lattice.isBottom(value) => None
+            case None => Some(store + (addr -> value))
+            case Some(oldValue) =>
+                val newValue = lattice.join(oldValue, value)
+                if newValue == oldValue then None
+                else
+                    Some(store + (addr -> newValue))
+
     override def intraAnalysis(component: Component): IntraGC
 
-    trait IntraGC extends GlobalStoreIntra {
+    trait IntraGC extends GlobalStoreIntra with ReturnResultIntra {
         intra =>
 
         /**
          * Garbage collect after every commit from the intra analysis to the shared analysis state.
          */
         def gc(): Unit
+
+        override def writeAddr(addr: Addr, value: Value): Boolean =
+            updateIntraAddr(intra.store, addr, value).map { updated =>
+                intra.store = updated
+                trigger(AddrDependency(addr))
+            }.isDefined
+
 
         override def doWrite(dep: Dependency): Boolean =
             dep match

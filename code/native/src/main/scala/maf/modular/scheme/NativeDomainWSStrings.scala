@@ -11,7 +11,7 @@ object NativeDomainWSStrings extends ModularSchemeLatticeWrapper:
     type I = NativeLattice.I
     type R = NativeLattice.R
     type C = NativeLattice.C
-    type Sym = NativeLattice.Sym
+    type Sym = NativeLattice.Sym2
     // make the scheme lattice
     final val modularLattice = new ModularSchemeLattice
     final val primitives = new SchemeLatticePrimitives()(modularLattice.schemeLattice)

@@ -25,4 +25,4 @@ object NativeIntGenerator extends NativeGenerator[BigInt, NativeLattice.I](Gener
 object NativeRealGenerator extends NativeGenerator[Double, NativeLattice.R](Generators.double)(realLL)
 object NativeCharGenerator extends NativeGenerator[Char, NativeLattice.C](Generators.char)(charLL)
 object NativeSymGenerator extends NativeGenerator[String, NativeLattice.Sym](Generators.sym)(symLL)
-
+object NativeSymGenerator2 extends NativeGenerator[String, NativeLattice.Sym2](Generators.sym)(symLL2)

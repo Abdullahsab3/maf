@@ -37,6 +37,13 @@ class NativeStringTest extends AnyFlatSpec with should.Matchers {
         assert(!(bNS == emptyNS))
     }
 
+    "==" should "fail if one object is top/bottom and the other is not" in {
+        assert(aNS != NativeString.top)
+        assert(bNS != NativeString.bottom)
+        assert(NativeString.top == NativeString.top)
+        assert(NativeString.bottom != NativeString.top)
+    }
+
     "eq" should "compare two NativeString using referential equality" in  {
         val _a = aNS
         assert(_a.eq(aNS))
