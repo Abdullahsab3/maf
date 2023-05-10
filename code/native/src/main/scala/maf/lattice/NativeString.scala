@@ -103,12 +103,12 @@ class NativeString(val underlying: S) extends AnyVal:
 
     // assuming sufficient memory is allcoated at dest
     @tailrec
-    private def strcat(dest: CString, src: CString, destlength: Int): Unit = 
+    private def strcat(dest: CString, src: CString): Unit = 
         if(!src == 0.toByte) then
-            !(dest + destlength) = 0.toByte
+            !dest = 0.toByte
         else
-            !(dest + destlength) = !src
-            strcat(dest + 1, src + 1, destlength)
+            !dest= !src
+            strcat(dest + 1, src + 1)
 
 
 
@@ -152,7 +152,7 @@ class NativeString(val underlying: S) extends AnyVal:
         struct._2 = malloc(stringLength.toULong + 1.toULong).asInstanceOf[CString]
         struct._3 = 0
         strcpy(struct._2, underlying._2)
-        strcat(struct._2, other.underlying._2, underlying._1)
+        strcat(struct._2 + underlying._1, other.underlying._2)
         val ns = new NativeString(struct)
         NativeString.allocatedStrings += ns
         ns
@@ -196,16 +196,17 @@ object NativeString:
 
     val SnSize = sizeof[Sn_struct]
 
-    private val ignore = 20
+    private val ignoreTopLength = Int.MaxValue
+    private val ignoreBottomLength = Int.MinValue
     var top: NativeString =
         val temp = NativeString("top")
-        temp.underlying._1 = ignore
+        temp.underlying._1 = ignoreTopLength
         temp.underlying._3 = 1
         temp
 
     var bottom: NativeString =
         val temp = NativeString("bottom")
-        temp.underlying._1 = ignore
+        temp.underlying._1 = ignoreBottomLength
         temp.underlying._3 = 1
         temp
 
@@ -236,13 +237,13 @@ object NativeString:
     def freshBounds(): Unit =
         top =
             val temp = NativeString("top")
-            temp.underlying._1 = ignore
+            temp.underlying._1 = ignoreTopLength
             temp.underlying._3 = 1
             temp
 
         bottom =
             val temp = NativeString("bottom")
-            temp.underlying._1 = ignore
+            temp.underlying._1 = ignoreBottomLength
             temp.underlying._3 = 1
             temp
 

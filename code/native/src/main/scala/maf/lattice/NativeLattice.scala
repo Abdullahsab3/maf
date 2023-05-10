@@ -269,8 +269,6 @@ object NativeLattice:
                 else if(x.eq(bottom)) then false
                 else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
                 
-               
-
 
             override def show(x: S): String =
                 if(x.eq(top)) then typeName
