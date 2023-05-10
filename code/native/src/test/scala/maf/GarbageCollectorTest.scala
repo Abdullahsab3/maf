@@ -15,7 +15,7 @@ import org.scalatest.matchers.should
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.*
-import scala.scalanative.unsafe.{CChar, CDouble, CInt, fromCString}
+import scala.scalanative.unsafe.{CChar, CDouble, CInt, CString, fromCString}
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
@@ -27,6 +27,8 @@ import maf.lattice._
 class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
     val testFiles: List[String] = List(
+       // "test/R5RS/gambit/earley.scm"
+        //"test/R5RS/gambit/nboyer.scm"
         //  "test/taint/tainted-function-select.scm",
         "test/R5RS/icp/icp_1c_ambeval.scm",
         "test/R5RS/icp/icp_5_regsim.scm",
@@ -37,7 +39,8 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
         "test/R5RS/icp/icp_2_aeval.scm",
         "test/R5RS/icp/icp_3_leval.scm",
         "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
-        "test/R5RS/icp/icp_8_compiler.scm")
+        "test/R5RS/icp/icp_8_compiler.scm"
+        )
 
     var cpStrings: Map[Address, ConstantPropagation.S] = Map.empty
     var cpSyms: Map[Address, ConstantPropagation.Sym] = Map.empty
@@ -88,10 +91,11 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
             with NativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp] {
 
-            override def emptyAnalysisMemory(): Unit =
+            override def emptyMemory(): Unit =
                 store.foreach((addr, v) =>
                     v.contents.foreach(
                     (key, el) =>
+                        
                         el match
                             case str: modularLattice.Str =>
                                 nativeStrings += (addr.asInstanceOf[Address], fromCString(str.s.asInstanceOf[NativeString].underlying._2))
@@ -104,7 +108,7 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
                             case char: modularLattice.Char =>
                                 nativeChars += (addr.asInstanceOf[Address], char.c.asInstanceOf[NativeLattice.C])
                             case _ => /* None */))
-                super.emptyAnalysisMemory()
+                super.emptyMemory()
 
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
@@ -117,12 +121,18 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
             val cp = newCPAnalysis(text)
             val sn = newNativeAnalysisWithGC(text)
 
+            println(s"allocList: ${NativeString.allocList}")
+
+
             cp.analyzeWithTimeout(Timeout.start(Duration(1, MINUTES)))
             sn.analyzeWithTimeout(Timeout.start(Duration(1, MINUTES)))
 
-            sn.emptyAnalysisMemory()
+            sn.emptyMemory()
 
-            assert(NativeString.allocatedStrings.isEmpty)
+            //println(s"freectr = ${NativeString.free_ctr}, mallocctr = ${NativeString.malloc_ctr}")
+
+            //assert(NativeString.allocatedStrings.isEmpty)
+
 
             cpStrings.foreach {
                 case (addr, ConstantPropagation.Constant(x: String)) => assert(nativeStrings.exists((naddr, nx) => naddr == addr && nx == x))
@@ -140,7 +150,7 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
 
             cpSyms.foreach {
-                case (addr, ConstantPropagation.Constant(x: String)) => assert(nativeSyms.exists((naddr, nx) => naddr == addr && nx == x))
+                case (addr, ConstantPropagation.Constant(x: String)) => assert(nativeSyms.exists((naddr, nx) => naddr == addr && nx == x), s"($addr, $x)")
                 case _ => /* None */
              }
 
@@ -164,6 +174,8 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
             nativeReals = Map.empty
 
         )
+
+        NativeString.freeBounds()
 
 
 

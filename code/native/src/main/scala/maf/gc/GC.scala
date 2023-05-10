@@ -45,6 +45,11 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
      */
     def unmarkValues(value: Value): Unit
 
+    /**
+     * Garbage collect after every commit from the intra analysis to the shared analysis state.
+     */
+    def gc(): Unit
+
     override def updateAddr(store: Map[Addr, Value], addr: Addr, value: Value): Option[Map[Addr, Value]] =
         store.get(addr) match
             case None if lattice.isBottom(value) => None
@@ -55,6 +60,7 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
                 else
                     unmarkValues(oldValue)
                     Some(store + (addr -> newValue))
+
 
 
     def updateIntraAddr(store: Map[Addr, Value], addr: Addr, value: Value): Option[Map[Addr, Value]] =
@@ -72,10 +78,7 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
     trait IntraGC extends GlobalStoreIntra with ReturnResultIntra {
         intra =>
 
-        /**
-         * Garbage collect after every commit from the intra analysis to the shared analysis state.
-         */
-        def gc(): Unit
+
 
         override def writeAddr(addr: Addr, value: Value): Boolean =
             updateIntraAddr(intra.store, addr, value).map { updated =>

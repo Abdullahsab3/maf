@@ -2,7 +2,7 @@ package maf.bench
 
 import scala.collection.mutable.ListBuffer
 
-class Measurement(warmup: Int, strategy: String, file: String):
+class Measurement(groupBy: Int = 1, warmup: Int, strategy: String, file: String):
     var mean: Option[Double] = None
     var sd: Option[Double] = None
     var n: Option[Double] = None
@@ -14,8 +14,9 @@ class Measurement(warmup: Int, strategy: String, file: String):
 
     def calculate(): Unit =
         val noWarmupmMasurements = measurements.slice(warmup, measurements.length)
-        measurements = noWarmupmMasurements
 
+        val groupedMeasurements: List[Double] = noWarmupmMasurements.grouped(groupBy).toList.map(_.sum)
+        measurements = groupedMeasurements.to(ListBuffer)
         mean = Some(computeAvg)
         sd = Some(computeSd)
         n = Some(measurements.length.toDouble)
@@ -27,7 +28,7 @@ class Measurement(warmup: Int, strategy: String, file: String):
     def addMeasurement(i: Double): Unit = measurements += i
 
     override def toString: String =
-        s"Measurement $file using $strategy given $warmup warmups: ${mean.get} +- ${1.96 * standardError} [min: ${min.get} , median: ${median.get}, max: ${max.get}] ms"
+        s"$file,${mean.get},${1.96 * standardError},${min.get},${median.get},${max.get}"
 
     private def standardError: Double =
         sd.get / Math.sqrt(n.get)

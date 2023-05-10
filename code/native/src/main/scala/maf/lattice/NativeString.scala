@@ -2,6 +2,7 @@ package maf.lattice
 import maf.lattice.NativeString.{bottom, top}
 
 import scalanative.unsafe.*
+//import scala.scalanative.libc.stdlib.{atol, free => u_free, malloc => u_malloc}
 import scala.scalanative.libc.stdlib.{atol, free, malloc}
 import scala.scalanative.libc.string.strcmp
 import scala.collection.mutable.ListBuffer
@@ -10,6 +11,7 @@ import java.lang.annotation.Native
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.compiletime.ops.string
+//import maf.lattice.NativeString.freeList
 
 
 // First field: length of the string when we have a constant. A useless number otherwise
@@ -19,6 +21,35 @@ import scala.compiletime.ops.string
 type Sn_struct = CStruct3[CInt, CString, CChar]
 type S = Ptr[Sn_struct]
 
+
+
+/* 
+def free(p: Ptr[Byte]): Unit = 
+    NativeString.free_ctr += 1
+    if(NativeString.free_ctr > NativeString.malloc_ctr) then 
+        println("WARNING!!! ATTEMPTING TO FREE MEMORY THAT IS ALREADY FREED")
+        if(p.isInstanceOf[S]) then 
+            val s = p.asInstanceOf[S]
+            println(s"length: ${s._1}, str: ${fromCString(s._2)}, mark: ${s._3}")
+        if(p.isInstanceOf[CString]) then 
+            val s = p.asInstanceOf[CString]
+            println(s"${fromCString(s)} | ${NativeString.freeList.contains(fromCString(s))}")
+        else 
+            println("unknown pointer")
+        println()
+
+    if(p.isInstanceOf[CString]) then 
+        val str = fromCString(p.asInstanceOf[CString])
+        NativeString.freeList += str
+    NativeString.allocList -= p
+    u_free(p)
+
+def malloc(c: CSize): Ptr[Byte] =
+    NativeString.malloc_ctr += 1
+    val p = u_malloc(c)
+    NativeString.allocList += p
+    p
+ */
 class NativeString(val underlying: S) extends AnyVal:
 
     def length = underlying._1
@@ -38,7 +69,7 @@ class NativeString(val underlying: S) extends AnyVal:
 
     def deallocate(): Unit =
         if(!(eq(top) || eq(bottom))) then
-            free(underlying._2)
+            free(underlying._2.asInstanceOf[Ptr[Byte]])
             free(underlying.asInstanceOf[Ptr[Byte]])
 
     // assuming lengths are equals
@@ -157,6 +188,12 @@ class NativeString(val underlying: S) extends AnyVal:
 object NativeString:
     var allocatedStrings : mutable.HashSet[NativeString] = mutable.HashSet.empty
 
+   // var allocList: ListBuffer[Ptr[Byte]] = ListBuffer.empty
+   // val freeList: ListBuffer[String] = ListBuffer.empty
+
+    //var free_ctr = 0
+    //var malloc_ctr = 0
+
     val SnSize = sizeof[Sn_struct]
 
     private val ignore = 20
@@ -191,8 +228,10 @@ object NativeString:
     def freeBounds(): Unit =
         free(top.underlying._2)
         free(top.underlying.asInstanceOf[Ptr[Byte]])
+        allocatedStrings -= top
         free(bottom.underlying._2)
         free(bottom.underlying.asInstanceOf[Ptr[Byte]])
+        allocatedStrings -= bottom
 
     def freshBounds(): Unit =
         top =
@@ -211,18 +250,13 @@ object NativeString:
 
     def initializeMemory(): Unit =
         allocatedStrings = mutable.HashSet.empty
-       // freshBounds()
 
     def gc(): Unit =
         val garbage = allocatedStrings.filter(_.isGarbage)
         garbage.foreach(s =>
-            allocatedStrings -= s
-            s.deallocate())
+            s.deallocate()
+            allocatedStrings -= s)
 
-
-    def forceDeallocateString(str: NativeString): Unit =
-        allocatedStrings -= str
-        str.deallocate()
 
     def deallocateAllStrings(): Unit =
         allocatedStrings.foreach(_.deallocate())

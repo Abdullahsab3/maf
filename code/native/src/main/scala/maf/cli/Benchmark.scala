@@ -50,6 +50,9 @@ object  Benchmark:
             with SchemeModFNoSensitivity
             with NativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp] {
+            override def run(timeout: Timeout.T): Unit =
+                super.run(timeout)
+                emptyAnalysisMemory()
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
         }
@@ -63,9 +66,7 @@ object  Benchmark:
                 new IntraAnalysis(cmp) with BigStepModFIntra
 
             override def run(timeout: Timeout.T): Unit =
-               // NativeString.freshBounds()
                 super.run(timeout)
-                NativeString.deallocateAllStrings()
         }
 
     def newNativeAnalysisWScalaStrings(program: SchemeExp) =
@@ -101,6 +102,7 @@ object  Benchmark:
             println("Pleas specify the strategy, how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
             println(s"strategies: ${analyses.keySet}")
         else
+            val progStartingTime = System.nanoTime()
             val strategy = args(0)
             val rounds = args(1).toInt
             val warmup = args(2).toInt
@@ -109,18 +111,18 @@ object  Benchmark:
                 val folders = args.slice(3, args.length)
                 testFiles ++= folders
             else
-                testFiles += "test/R5RS/icp"
+            testFiles += "test/R5RS/icp"
             println(s"Analysing $strategy with $rounds rounds and $warmup warmup rounds using $testFiles")
             val bench: List[String] = SchemeBenchmarkPrograms.fromFolders(testFiles.toList)
             val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
             var measurement : Option[Measurement] = None
             
-            
+            println("file,mean,CI,min,median,max")
             var analysis = analyses(strategy)
             var i = 0
             while (i < bench.length) do
                 val filename = bench(i)
-                measurement = Some(Measurement(warmup, strategy, filename))
+                measurement = Some(Measurement(20, warmup, strategy, filename))
                 var j = 0
                 while (j < rounds) do
                     val t = runAnalysis(filename, parsedPrograms(i), analysis, () => Timeout.start(Duration(1, MINUTES)))
@@ -129,5 +131,13 @@ object  Benchmark:
                 measurement.get.calculate()
                 println(measurement.get.toString())
                 i = i + 1
+                
             println()
+            println(s"There are still ${NativeString.allocatedStrings.size} allocated strings left")
+            val startingTime = System.nanoTime
+            NativeString.deallocateAllStrings()
+            val totalTime = System.nanoTime() - startingTime
             NativeString.freeBounds()
+            println(s"Deallocating the strings took $totalTime ms")
+            val finishTime = System.nanoTime - progStartingTime
+            println(s"Executing the benchmarks took $finishTime ms")

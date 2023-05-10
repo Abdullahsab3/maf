@@ -56,6 +56,7 @@ object  Benchmark:
             println("Pleas specify the strategy, how many iterations, how many of these iterations are warmup rounds, and optionally which folders to benchmark")
             println(s"strategies: ${analyses.keySet}")
         else
+            val progStartingTime = System.nanoTime()
             val strategy = args(0)
             val rounds = args(1).toInt
             val warmup = args(2).toInt
@@ -70,12 +71,12 @@ object  Benchmark:
             val parsedPrograms: List[SchemeExp] = bench.map((s: String) => SchemeParser.parseProgram(Reader.loadFile(s)))
             var measurement : Option[Measurement] = None
             
-            
+            println("file,mean,CI,min,median,max")
             var analysis = analyses(strategy)
             var i = 0
             while (i < bench.length) do
                 val filename = bench(i)
-                measurement = Some(Measurement(warmup, strategy, filename))
+                measurement = Some(Measurement(10, warmup, strategy, filename))
                 var j = 0
                 while (j < rounds) do
                     val t = runAnalysis(filename, parsedPrograms(i), analysis, () => Timeout.start(Duration(1, MINUTES)))
@@ -85,3 +86,5 @@ object  Benchmark:
                 println(measurement.get.toString())
                 i = i + 1
             println()
+            val finishTime = System.nanoTime - progStartingTime
+            println(s"Executing the benchmarks took $finishTime ms")

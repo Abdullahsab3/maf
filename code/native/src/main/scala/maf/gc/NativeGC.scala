@@ -29,12 +29,13 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
                     (mk, mv) =>
                         mv match
                             case str: modularLattice.Str =>
-                                NativeString.forceDeallocateString(str.s.asInstanceOf[NativeString])
+                                str.s.asInstanceOf[NativeString].unmark()
                             case str: modularLattice.Symbol =>
-                                NativeString.forceDeallocateString(str.s.asInstanceOf[NativeString])
+                                str.s.asInstanceOf[NativeString].unmark()
                             case _ => /* None */
                 )
         )
+
 
     def markValues(value: Value): Unit =
         value.contents.foreach(
@@ -58,17 +59,14 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
                     case _ => /* None */
         )
 
+    def gc(): Unit =
+        NativeString.gc()
+
 
 
     // update some rudimentary analysis results
     override def intraAnalysis(component: Component): NativeIntraGC
-    trait NativeIntraGC extends IntraGC with GlobalStoreIntra {
-        intra =>
-
-        def gc(): Unit =
-            NativeString.gc()
-
-    }
+    trait NativeIntraGC extends IntraGC with GlobalStoreIntra
 
 
     override def configString(): String = super.configString() + "\n  with domain-specific garbage collection"
