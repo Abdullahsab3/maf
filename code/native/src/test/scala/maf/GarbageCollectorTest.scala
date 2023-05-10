@@ -27,9 +27,7 @@ import maf.lattice._
 class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
     val testFiles: List[String] = List(
-       // "test/R5RS/gambit/earley.scm"
-        //"test/R5RS/gambit/nboyer.scm"
-        //  "test/taint/tainted-function-select.scm",
+        "test/R5RS/icp/icp_4_qeval.scm",
         "test/R5RS/icp/icp_1c_ambeval.scm",
         "test/R5RS/icp/icp_5_regsim.scm",
         "test/R5RS/icp/icp_7_eceval.scm",
@@ -117,11 +115,12 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
     "Native Analysis with Garbage Collection" should "return correct and sound results" in {
         testFiles.foreach(file =>
 
+            println(s"analyzing $file")
             val text = SchemeParser.parseProgram(Reader.loadFile(file))
             val cp = newCPAnalysis(text)
             val sn = newNativeAnalysisWithGC(text)
 
-            println(s"allocList: ${NativeString.allocList}")
+           // println(s"allocList: ${NativeString.allocList}")
 
 
             cp.analyzeWithTimeout(Timeout.start(Duration(1, MINUTES)))
