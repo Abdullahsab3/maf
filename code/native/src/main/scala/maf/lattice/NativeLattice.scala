@@ -96,28 +96,13 @@ object NativeLattice:
         
 
     object L:
-        implicit val boolLL:  BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
-            
+/*         implicit val boolLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
             private def CChar2Boolean(i: B): Boolean = 
                 i == 1.toByte
-            
+
             val top = 4.toByte
             val bottom = 2.toByte
             def inject(b: Boolean): B = (if b then 1 else 0).toByte
-
-            def isTrue(b: B): Boolean = 
-                if(b == top) then true
-                else if(b == bottom) then false
-                else b == 1.toByte
-
-            def isFalse(b: B): Boolean = 
-                if(b == top) then true
-                else if(b == bottom) then false
-                else b != 1.toByte
-            def not(b: B): B = 
-                if(b < bottom) then inject(b != 1)
-                else b
-/*          
             def isTrue(b: B): Boolean = 
                 import boolLatticeOps.boolIsTrue
                 val result = boolIsTrue(b)
@@ -139,13 +124,37 @@ object NativeLattice:
             override def subsumes(x: B, y: => B): Boolean =
                 import boolLatticeOps.boolSubsumes
                 val result = boolSubsumes(x, y)
-                CChar2Boolean(result) */
+                CChar2Boolean(result) 
+
+        } */
+        implicit val boolLL:  BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
+            
+            private def CChar2Boolean(i: B): Boolean = 
+                i == 1.toByte
+            
+            val top = 4.toByte
+            val bottom = 2.toByte
+            def inject(b: Boolean): B = (if b then 1 else 0).toByte
+
+            def isTrue(b: B): Boolean = 
+                if(b == top) then true
+                else if(b == bottom) then false
+                else b == 1.toByte
+
+            def isFalse(b: B): Boolean = 
+                if(b == top) then true
+                else if(b == bottom) then false
+                else b != 1.toByte
+            def not(b: B): B = 
+                if(b < bottom) then inject(b != 1)
+                else b
+
             override def show(x: B): String =
                 if(x == top) then typeName
                 else if(x == bottom) then s"$typeName.⊥"
                 else CChar2Boolean(x).toString
         }
-        
+         
 
 
         implicit val StringLL2: AbstractBaseInstance[String, S2] with StringLattice[S2] = new AbstractBaseInstance[String, S2]("Str") with StringLattice[S2] {

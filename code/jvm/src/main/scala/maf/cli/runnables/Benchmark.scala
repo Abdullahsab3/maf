@@ -76,7 +76,7 @@ object  Benchmark:
             var i = 0
             while (i < bench.length) do
                 val filename = bench(i)
-                measurement = Some(Measurement(10, warmup, strategy, filename))
+                measurement = Some(Measurement(20, warmup, strategy, filename))
                 var j = 0
                 while (j < rounds) do
                     val t = runAnalysis(filename, parsedPrograms(i), analysis, () => Timeout.start(Duration(1, MINUTES)))

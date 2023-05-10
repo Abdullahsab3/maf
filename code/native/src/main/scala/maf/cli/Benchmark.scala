@@ -52,7 +52,7 @@ object  Benchmark:
             with FIFOWorklistAlgorithm[SchemeExp] {
             override def run(timeout: Timeout.T): Unit =
                 super.run(timeout)
-                emptyAnalysisMemory()
+                emptyMemory()
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
         }
@@ -140,4 +140,4 @@ object  Benchmark:
             NativeString.freeBounds()
             println(s"Deallocating the strings took $totalTime ms")
             val finishTime = System.nanoTime - progStartingTime
-            println(s"Executing the benchmarks took $finishTime ms")
+            println(s"Executing the benchmarks took $finishTime ns")
