@@ -12,6 +12,7 @@ import maf.util.benchmarks.Timeout
 
 import scala.collection.mutable.ListBuffer
 import scala.scalanative.unsafe.fromCString
+import scala.collection.mutable.Stack
 
 trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with NativeSchemeDomain with GlobalStore[Expr] { inter =>
 
@@ -37,28 +38,45 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
         )
 
 
+
+
     def markValues(value: Value): Unit =
-        value.contents.foreach(
-            (k, v) =>
+        val stack = Stack(value)
+
+        while(stack.nonEmpty) do 
+            val current = stack.pop()
+
+            for v <- current.contents.values do 
                 v match
-                    case str: modularLattice.Str =>
-                        str.s.asInstanceOf[NativeString].mark()
-                    case str: modularLattice.Symbol =>
-                        str.s.asInstanceOf[NativeString].mark()
-                    case _ => /* None */
-        )
+                        case str: modularLattice.Str =>
+                            str.s.asInstanceOf[NativeString].mark()
+                        case str: modularLattice.Symbol =>
+                            str.s.asInstanceOf[NativeString].mark()
+                        case modularLattice.Cons(car, cdr) =>
+                            stack.push(car)
+                            stack.push(cdr)
+                        case modularLattice.Vec(size, elements) =>
+                            elements.foreach((i, el) => stack.push(el))
+                        case _ => /* None */
 
     def unmarkValues(value: Value): Unit =
-        value.contents.foreach(
-            (k, v) =>
-                v match
-                    case str: modularLattice.Str =>
-                        str.s.asInstanceOf[NativeString].unmark()
-                    case str: modularLattice.Symbol =>
-                        str.s.asInstanceOf[NativeString].unmark()
-                    case _ => /* None */
-        )
+        val stack = Stack(value)
+        
+        while(stack.nonEmpty) do
+            val current = stack.pop()
 
+            for v <- current.contents.values do
+                v match
+                        case str: modularLattice.Str =>
+                            str.s.asInstanceOf[NativeString].unmark()
+                        case str: modularLattice.Symbol =>
+                            str.s.asInstanceOf[NativeString].unmark()
+                        case modularLattice.Cons(car, cdr) =>
+                            stack.push(car)
+                            stack.push(cdr)
+                        case modularLattice.Vec(size, elements) =>
+                            elements.foreach((i, el) => stack.push(el))
+                        case _ => /* None */
     def gc(): Unit =
         NativeString.gc()
 

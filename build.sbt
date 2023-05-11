@@ -89,7 +89,7 @@ lazy val maf = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     libraryDependencies += ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13)
   )
   .nativeSettings(
-    Compile / mainClass := Some("maf.cli.runnables.Benchmark"),
+    Compile / mainClass := Some("maf.cli.runnables.AnalyzeProgram"),
 /*     nativeMode := "release-full",
     nativeLTO := "thin"  */
   )

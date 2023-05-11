@@ -23,8 +23,8 @@ type S = Ptr[Sn_struct]
 
 
 
-/* 
-def free(p: Ptr[Byte]): Unit = 
+
+/* def free(p: Ptr[Byte]): Unit = 
     NativeString.free_ctr += 1
     if(NativeString.free_ctr > NativeString.malloc_ctr) then 
         println("WARNING!!! ATTEMPTING TO FREE MEMORY THAT IS ALREADY FREED")
@@ -37,10 +37,9 @@ def free(p: Ptr[Byte]): Unit =
         else 
             println("unknown pointer")
         println()
+    val s = p.asInstanceOf[S]
 
-    if(p.isInstanceOf[CString]) then 
-        val str = fromCString(p.asInstanceOf[CString])
-        NativeString.freeList += str
+    NativeString.freeList += p
     NativeString.allocList -= p
     u_free(p)
 
@@ -49,7 +48,7 @@ def malloc(c: CSize): Ptr[Byte] =
     val p = u_malloc(c)
     NativeString.allocList += p
     p
- */
+  */
 class NativeString(val underlying: S) extends AnyVal:
 
     def length = underlying._1
@@ -180,7 +179,9 @@ class NativeString(val underlying: S) extends AnyVal:
         !(underlying._2) == 0.toChar
 
     override def toString(): String =
-        fromCString(underlying._2)
+        s"length= $length, string = ${fromCString(underlying._2)}, mark to stay: ${underlying._3}"
+
+  //      fromCString(underlying._2)
 
     def prettyString(): String =
         s"length= $length, string = ${toString()}, mark to stay: ${underlying._3}"
@@ -188,11 +189,11 @@ class NativeString(val underlying: S) extends AnyVal:
 object NativeString:
     var allocatedStrings : mutable.HashSet[NativeString] = mutable.HashSet.empty
 
-   // var allocList: ListBuffer[Ptr[Byte]] = ListBuffer.empty
-   // val freeList: ListBuffer[String] = ListBuffer.empty
+/*     var allocList: ListBuffer[Ptr[Byte]] = ListBuffer.empty
+    val freeList: ListBuffer[Ptr[Byte]] = ListBuffer.empty
 
-    //var free_ctr = 0
-    //var malloc_ctr = 0
+    var free_ctr = 0
+    var malloc_ctr = 0 */
 
     val SnSize = sizeof[Sn_struct]
 

@@ -6,6 +6,7 @@ import maf.modular.{AddrDependency, Dependency, GlobalStore, ModAnalysis, Return
 import maf.modular.scheme.NativeSchemeDomain
 import maf.modular.worklist.SequentialWorklistAlgorithm
 import maf.util.benchmarks.Timeout
+import scala.collection.mutable.ListBuffer
 
 trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAlgorithm[Expr]  with GlobalStore[Expr] with ReturnValue[Expr] { inter =>
 
@@ -44,7 +45,6 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
      * @param value the value to be deallocated
      */
     def unmarkValues(value: Value): Unit
-
     /**
      * Garbage collect after every commit from the intra analysis to the shared analysis state.
      */
@@ -56,7 +56,8 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
             case None => Some(store + (addr -> value))
             case Some(oldValue) =>
                 val newValue = lattice.join(oldValue, value)
-                if newValue == oldValue then None
+                if newValue == oldValue then 
+                    None
                 else
                     unmarkValues(oldValue)
                     Some(store + (addr -> newValue))
@@ -77,8 +78,6 @@ trait GC[Expr <: Expression] extends ModAnalysis[Expr] with SequentialWorklistAl
 
     trait IntraGC extends GlobalStoreIntra with ReturnResultIntra {
         intra =>
-
-
 
         override def writeAddr(addr: Addr, value: Value): Boolean =
             updateIntraAddr(intra.store, addr, value).map { updated =>

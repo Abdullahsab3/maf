@@ -11,7 +11,7 @@ import maf.modular.worklist.FIFOWorklistAlgorithm
 import maf.util.{Reader, StoreUtil}
 import maf.util.benchmarks.{Timeout, Timer}
 import maf.modular.scheme.SchemeConstantPropagationDomain
-
+import scalanative.unsafe._
 import scala.concurrent.duration.*
 
 // null values are used here due to Java interop
@@ -19,6 +19,7 @@ import scala.language.unsafeNulls
 import maf.modular.scheme.{NativeDomainWSStrings, NativeSchemeDomain}
 import maf.core.Address
 import maf.lattice._
+import maf.modular.AddrDependency
 
 
 
@@ -128,8 +129,8 @@ object AnalyzeProgram:
             with NativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp] {
             override def emptyMemory(): Unit = {} /* Do Nothing */
+            
             override def updateAddr(store: Map[Addr, modularLattice.L], addr: Addr, value: modularLatticeWrapper.modularLattice.L): Option[Map[Addr, modularLattice.L]] =
-               // println(value.contents)
                 super.updateAddr(store, addr, value)
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
@@ -139,14 +140,12 @@ object AnalyzeProgram:
 
     def main(args: Array[String]): Unit =
         val a = runAnalysis(
-            "test/test.rkt", program => newNativeAnalysisWithGC(program), () => Timeout.start(Duration(5, MINUTES))
+            "test/R5RS/gambit/nboyer.scm", program => newNativeAnalysisWithGC(program), () => Timeout.start(Duration(5, MINUTES))
         )
         val b = runAnalysis(
-            "test/test.rkt", program => newCPAnalysis(program), () => Timeout.start(Duration(5, MINUTES))
+            "test/R5RS/gambit/nboyer.scm", program => newCPAnalysis(program), () => Timeout.start(Duration(5, MINUTES))
         )
-
-        println(a.storeString(false))
-        println()
-        println(b.storeString(false))
+        println(a.result)
+        println(b.result) 
         a.emptyMemory()
         NativeString.freeBounds()
