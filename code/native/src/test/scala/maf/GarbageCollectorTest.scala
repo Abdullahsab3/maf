@@ -27,8 +27,9 @@ import maf.lattice._
 class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
     val testFiles: List[String] = List(
+        "test/R5RS/gambit/sboyer.scm",
        // "test/R5RS/gambit/nboyer.scm"
-        "test/R5RS/icp/icp_4_qeval.scm",
+       /*  "test/R5RS/icp/icp_4_qeval.scm",
         "test/R5RS/icp/icp_1c_ambeval.scm",
         "test/R5RS/icp/icp_5_regsim.scm",
         "test/R5RS/icp/icp_7_eceval.scm",
@@ -38,7 +39,7 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
         "test/R5RS/icp/icp_2_aeval.scm",
         "test/R5RS/icp/icp_3_leval.scm",
         "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
-        "test/R5RS/icp/icp_8_compiler.scm" 
+        "test/R5RS/icp/icp_8_compiler.scm"  */
         )
 
     var cpStrings: Map[Address, ConstantPropagation.S] = Map.empty

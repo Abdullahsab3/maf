@@ -20,6 +20,7 @@ import maf.modular.scheme.{NativeDomainWSStrings, NativeSchemeDomain}
 import maf.core.Address
 import maf.lattice._
 import maf.modular.AddrDependency
+import maf.lattice.NativeString.allocatedStrings
 
 
 
@@ -128,24 +129,29 @@ object AnalyzeProgram:
             with SchemeModFNoSensitivity
             with NativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp] {
-            override def emptyMemory(): Unit = {} /* Do Nothing */
-            
-            override def updateAddr(store: Map[Addr, modularLattice.L], addr: Addr, value: modularLatticeWrapper.modularLattice.L): Option[Map[Addr, modularLattice.L]] =
-                super.updateAddr(store, addr, value)
+
             override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
+                new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC:
+                    override def commit(): Unit =
+                        println(component)
+                        println(W)
+                        println(R)
+                        println(C)
+
+                        super.commit()
+                        println()
 
 
         }
 
     def main(args: Array[String]): Unit =
         val a = runAnalysis(
-            "test/R5RS/gambit/nboyer.scm", program => newNativeAnalysisWithGC(program), () => Timeout.start(Duration(5, MINUTES))
+            "test/test.rkt", program => newNativeAnalysisWithGC(program), () => Timeout.start(Duration(5, MINUTES))
         )
         val b = runAnalysis(
-            "test/R5RS/gambit/nboyer.scm", program => newCPAnalysis(program), () => Timeout.start(Duration(5, MINUTES))
+            "test/test.rkt", program => newCPAnalysis(program), () => Timeout.start(Duration(5, MINUTES))
         )
-        println(a.result)
-        println(b.result) 
+        println(a.storeString(false))
+        println(b.storeString(false)) 
         a.emptyMemory()
         NativeString.freeBounds()

@@ -44,7 +44,7 @@ trait DebuggableGC[Expr <: Expression](extensive: Boolean) extends ModAnalysis[E
                     val value = intra.store(addr)
                     val isGlobalStateUpdated = inter.writeAddr(addr, value)
                     if isGlobalStateUpdated then
-                        markValues(value)
+                        increaseDependencyCounter(value)
                         needed += (dep, value)
                     else
                         garbage += (dep, value)

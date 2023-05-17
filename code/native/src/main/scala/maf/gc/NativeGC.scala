@@ -36,11 +36,12 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
                             case _ => /* None */
                 )
         )
+        gc()
 
 
 
 
-    def markValues(value: Value): Unit =
+    def increaseDependencyCounter(value: Value): Unit =
         val stack = Stack(value)
 
         while(stack.nonEmpty) do 
@@ -59,7 +60,7 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
                             elements.foreach((i, el) => stack.push(el))
                         case _ => /* None */
 
-    def unmarkValues(value: Value): Unit =
+    def decreaseDependencyCounter(value: Value): Unit =
         val stack = Stack(value)
         
         while(stack.nonEmpty) do
