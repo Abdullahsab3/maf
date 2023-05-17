@@ -3,7 +3,7 @@ package maf.cli.runnables
 import maf.bench.Measurement
 import maf.bench.scheme.SchemeBenchmarkPrograms
 import maf.core.{Identifier, Monad}
-import maf.gc.NativeGC
+import maf.gc.{NonClassNativeGC, NativeGC}
 import maf.language.CScheme.CSchemeParser
 import maf.language.scheme.*
 import maf.modular.{DependencyTracking, ModAnalysis}
@@ -17,7 +17,7 @@ import scala.concurrent.duration.*
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
-import maf.modular.scheme.{NativeDomainWSStrings, NativeSchemeDomain}
+import maf.modular.scheme.{NativeDomainWSStrings, NativeSchemeDomain, NonClassNativeSchemeDomain}
 import maf.lattice.NativeLattice
 import maf.modular.scheme.SchemeConstantPropagationDomain
 import scala.collection.mutable.ListBuffer
@@ -43,6 +43,20 @@ object  Benchmark:
                 System.err.flush()
         }
         t
+
+    def newNativeAnalysisNonClassWGC(program: SchemeExp) =
+        new SimpleSchemeModFAnalysis(program)
+            with NonClassNativeGC[SchemeExp]
+            with SchemeModFNoSensitivity
+            with NonClassNativeSchemeDomain
+            with FIFOWorklistAlgorithm[SchemeExp] {
+            override def run(timeout: Timeout.T): Unit =
+                super.run(timeout)
+                emptyMemory()
+            override def intraAnalysis(cmp: SchemeModFComponent) =
+                new IntraAnalysis(cmp) with BigStepModFIntra with IntraGC
+        }
+
 
     def newNativeAnalysisWithGC(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
@@ -91,6 +105,7 @@ object  Benchmark:
 
     val analyses: Map[String, SchemeExp => ModAnalysis[SchemeExp]] =
         Map("NativeWGC" -> newNativeAnalysisWithGC,
+            "NativeNonClassWGC" -> newNativeAnalysisNonClassWGC,
             "NativeWoGC" -> newNativeAnalysisWoGC,
             "NativewScalaString" -> newNativeAnalysisWScalaStrings,
             "CP" -> newCPAnalysis)

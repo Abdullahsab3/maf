@@ -13,9 +13,6 @@ import scalanative.unsafe._
 import scala.scalanative.unsigned.UByte
 import scala.collection.mutable.ListBuffer
 
-
-
-
 object AltNativeLattice:
     type B = CChar
     type S2 = String
@@ -73,7 +70,7 @@ object AltNativeLattice:
         override def eql[B2: BoolLattice](n1: S, n2: S): B2 =
             if (NonClassNativeString.eq(n1, bottom) || NonClassNativeString.eq(n2, bottom)) then BoolLattice[B2].bottom
             else if (NonClassNativeString.eq(n1, top) || NonClassNativeString.eq(n2, top)) then BoolLattice[B2].top
-            else BoolLattice[B2].inject(equals(n1, n2))
+            else BoolLattice[B2].inject(NonClassNativeString.equals(n1, n2))
 
 
 
@@ -187,7 +184,7 @@ object AltNativeLattice:
         override def eql[B2: BoolLattice](n1: S, n2: S): B2 =
             if (NonClassNativeString.eq(n1, bottom) || NonClassNativeString.eq(n2, bottom)) then BoolLattice[B2].bottom
             else if (NonClassNativeString.eq(n1, top) || NonClassNativeString.eq(n2, top)) then BoolLattice[B2].top
-            else BoolLattice[B2].inject(equals(n1, n2))
+            else BoolLattice[B2].inject(NonClassNativeString.equals(n1, n2))
 
         def inject(x: String): Sym = NonClassNativeString.makeNativeString(x)
 

@@ -27,7 +27,7 @@ import maf.lattice._
 class NonClassGarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
     val testFiles: List[String] = List(
-        //"test/R5RS/gambit/sboyer.scm",
+        "test/R5RS/gambit/sboyer.scm",
         "test/R5RS/gambit/nboyer.scm",
         "test/R5RS/icp/icp_4_qeval.scm",
         "test/R5RS/icp/icp_1c_ambeval.scm",
