@@ -34,7 +34,7 @@ trait DebuggableGC[Expr <: Expression](extensive: Boolean) extends ModAnalysis[E
         printNativeStringCount()
 
     override def intraAnalysis(component: Component): DebuggableGCIntra
-    trait DebuggableGCIntra extends GlobalStoreIntra with  NativeIntraGC { intra =>
+    trait DebuggableGCIntra extends GlobalStoreIntra with  IntraGC { intra =>
         var garbage: Map[Dependency, Value] = Map.empty
         var needed: Map[Dependency, Value] = Map.empty
 

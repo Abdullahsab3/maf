@@ -1,7 +1,6 @@
 package maf.gc
 
 import maf.core.Expression
-import maf.lattice.NativeString
 import maf.modular.{AddrDependency, Dependency, GlobalStore, ModAnalysis, ReturnAddr, ReturnValue}
 import maf.modular.scheme.NativeSchemeDomain
 import maf.modular.worklist.SequentialWorklistAlgorithm

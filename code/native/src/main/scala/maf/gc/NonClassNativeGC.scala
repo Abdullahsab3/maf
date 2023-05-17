@@ -2,7 +2,6 @@ package maf.gc
 
 import maf.core.Expression
 import maf.language.scheme.lattices.ModularSchemeLattice
-import maf.lattice.NativeString
 import maf.modular.scheme.NativeSchemeDomain
 import maf.modular.scheme.NativeSchemeDomain.modularLattice
 import maf.modular.worklist.SequentialWorklistAlgorithm
@@ -13,15 +12,18 @@ import maf.util.benchmarks.Timeout
 import scala.collection.mutable.ListBuffer
 import scala.scalanative.unsafe.fromCString
 import scala.collection.mutable.Stack
+import maf.lattice.NonClassNativeString.*
+import maf.lattice.NonClassNativeString
+import maf.modular.scheme.NonClassNativeSchemeDomain
 
-trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with NativeSchemeDomain with GlobalStore[Expr] { inter =>
+trait NonClassNativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with NonClassNativeSchemeDomain with GlobalStore[Expr] { inter =>
 
     def initializeMemory(): Unit =
-        NativeString.initializeMemory()
+        NonClassNativeString.initializeMemory()
 
 
     def emptyMemory(): Unit =
-        NativeString.deallocateAllStrings()
+        NonClassNativeString.deallocateAllStrings()
 
     override def emptyAnalysisMemory(): Unit =
         store.foreach(
@@ -30,15 +32,13 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
                     (mk, mv) =>
                         mv match
                             case str: modularLattice.Str =>
-                                str.s.asInstanceOf[NativeString].decreaseDependencyCounter()
+                                NonClassNativeString.makeGarbage(str.s.asInstanceOf[NonClassNativeString.S])
                             case str: modularLattice.Symbol =>
-                                str.s.asInstanceOf[NativeString].decreaseDependencyCounter()
+                                 NonClassNativeString.makeGarbage(str.s.asInstanceOf[NonClassNativeString.S])
                             case _ => /* None */
                 )
         )
         gc()
-
-
 
 
     def increaseDependencyCounter(value: Value): Unit =
@@ -50,9 +50,9 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
             for v <- current.contents.values do 
                 v match
                         case str: modularLattice.Str =>
-                            str.s.asInstanceOf[NativeString].increaseDependencyCounter()
+                            NonClassNativeString.increaseDependencyCounter(str.s.asInstanceOf[NonClassNativeString.S])
                         case str: modularLattice.Symbol =>
-                            str.s.asInstanceOf[NativeString].increaseDependencyCounter()
+                             NonClassNativeString.increaseDependencyCounter(str.s.asInstanceOf[NonClassNativeString.S])
                         case modularLattice.Cons(car, cdr) =>
                             stack.push(car)
                             stack.push(cdr)
@@ -69,9 +69,9 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
             for v <- current.contents.values do
                 v match
                         case str: modularLattice.Str =>
-                            str.s.asInstanceOf[NativeString].decreaseDependencyCounter()
+                            NonClassNativeString.decreaseDependencyCounter(str.s.asInstanceOf[NonClassNativeString.S])
                         case str: modularLattice.Symbol =>
-                            str.s.asInstanceOf[NativeString].decreaseDependencyCounter()
+                            NonClassNativeString.decreaseDependencyCounter(str.s.asInstanceOf[NonClassNativeString.S])
                         case modularLattice.Cons(car, cdr) =>
                             stack.push(car)
                             stack.push(cdr)
@@ -79,7 +79,7 @@ trait NativeGC[Expr <: Expression] extends ModAnalysis[Expr] with GC[Expr] with 
                             elements.foreach((i, el) => stack.push(el))
                         case _ => /* None */
     def gc(): Unit =
-        NativeString.gc()
+        NonClassNativeString.gc()
 
 
     override def configString(): String = super.configString() + "\n  with domain-specific garbage collection"

@@ -36,11 +36,11 @@ class DebuggableNativeString(val underlying: S) extends AnyVal:
 
     def length = underlying._1
 
-    def mark() =
+    def increaseDependencyCounter() =
         if(!(eq(top) || eq(bottom))) then 
             underlying._3 = (underlying._3 + 1).toByte
 
-    def unmark() =
+    def decreaseDependencyCounter() =
         val ctr = underlying._3
         if(ctr > 0) then
             if(!(eq(top) || eq(bottom))) then

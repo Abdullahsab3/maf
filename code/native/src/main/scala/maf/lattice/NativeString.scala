@@ -4,9 +4,7 @@ import maf.lattice.NativeString.{bottom, top}
 import scalanative.unsafe.*
 import scala.scalanative.libc.stdlib.{atol, free, malloc}
 import scala.scalanative.libc.string.strcmp
-import scala.collection.mutable.ListBuffer
 import scalanative.unsigned.UnsignedRichInt
-import java.lang.annotation.Native
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.compiletime.ops.string
@@ -23,11 +21,11 @@ class NativeString(val underlying: S) extends AnyVal:
 
     def length = underlying._1
 
-    def mark() =
+    def increaseDependencyCounter() =
         if(!(eq(top) || eq(bottom))) then 
             underlying._3 = (underlying._3 + 1).toByte
 
-    def unmark() =
+    def decreaseDependencyCounter() =
         val ctr = underlying._3
         if(ctr > 0) then
             if(!(eq(top) || eq(bottom))) then

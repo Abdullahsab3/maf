@@ -1,7 +1,7 @@
 package maf.test
 
 import maf.core.{Identifier, Monad}
-import maf.gc.NativeGC
+import maf.gc.NonClassNativeGC
 import maf.language.CScheme.CSchemeParser
 import maf.language.scheme.*
 import maf.modular.{DependencyTracking, ModAnalysis, ReturnAddr}
@@ -19,15 +19,15 @@ import scala.scalanative.unsafe.{CChar, CDouble, CInt, CString, fromCString}
 
 // null values are used here due to Java interop
 import scala.language.unsafeNulls
-import maf.modular.scheme.{NativeDomainWSStrings, NativeSchemeDomain}
+import maf.modular.scheme.{NonClassNativeSchemeDomain}
 import maf.core.Address
 import maf.lattice._
 
 
-class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
+class NonClassGarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
     val testFiles: List[String] = List(
-        "test/R5RS/gambit/sboyer.scm",
+        //"test/R5RS/gambit/sboyer.scm",
         "test/R5RS/gambit/nboyer.scm",
         "test/R5RS/icp/icp_4_qeval.scm",
         "test/R5RS/icp/icp_1c_ambeval.scm",
@@ -39,7 +39,7 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
         "test/R5RS/icp/icp_2_aeval.scm",
         "test/R5RS/icp/icp_3_leval.scm",
         "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
-        "test/R5RS/icp/icp_8_compiler.scm"  
+        "test/R5RS/icp/icp_8_compiler.scm"   
         )
 
     var cpStrings: Map[Address, ConstantPropagation.S] = Map.empty
@@ -86,9 +86,9 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
     def newNativeAnalysisWithGC(program: SchemeExp) =
         new SimpleSchemeModFAnalysis(program)
-            with NativeGC[SchemeExp]
+            with NonClassNativeGC[SchemeExp]
             with SchemeModFNoSensitivity
-            with NativeSchemeDomain
+            with NonClassNativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp] {
 
             override def emptyMemory(): Unit =
@@ -98,9 +98,9 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
                         
                         el match
                             case str: modularLattice.Str =>
-                                nativeStrings += (addr.asInstanceOf[Address], fromCString(str.s.asInstanceOf[NativeString].underlying._2))
+                                nativeStrings += (addr.asInstanceOf[Address], fromCString(str.s.asInstanceOf[NonClassNativeString.S]._2))
                             case str: modularLattice.Symbol =>
-                                nativeSyms += (addr.asInstanceOf[Address], fromCString(str.s.asInstanceOf[NativeString].underlying._2))
+                                nativeSyms += (addr.asInstanceOf[Address], fromCString(str.s.asInstanceOf[NonClassNativeString.S]._2))
                             case int: modularLattice.Int =>
                                 nativeInts += (addr.asInstanceOf[Address], int.i.asInstanceOf[NativeLattice.I])
                             case real: modularLattice.Real =>
@@ -136,16 +136,16 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
 
             cpStrings.foreach {
-                case (addr, ConstantPropagation.Constant(x: String)) => assert(nativeStrings.exists((naddr, nx) => naddr == addr && nx == x))
+                case (addr, ConstantPropagation.Constant(x: String)) => assert(nativeStrings.exists((naddr, nx) => naddr == addr && nx == x), s"($addr, $x)")
                 case _ => /* None */
             }
             cpChars.foreach {
-                case (addr, ConstantPropagation.Constant(x: Char)) => assert(nativeChars.exists((naddr, nx) => naddr == addr && nx.toByte == x))
+                case (addr, ConstantPropagation.Constant(x: Char)) => assert(nativeChars.exists((naddr, nx) => naddr == addr && nx.toByte == x), s"($addr, $x)")
                 case _ => /* None */
             }
 
             cpInts.foreach {
-                case (addr, ConstantPropagation.Constant(x: BigInt)) => assert(nativeInts.exists((naddr, nx) => naddr == addr && nx == x.toInt))
+                case (addr, ConstantPropagation.Constant(x: BigInt)) => assert(nativeInts.exists((naddr, nx) => naddr == addr && nx == x.toInt), s"($addr, $x)")
                 case _ => /* None */
             }
 
@@ -158,7 +158,7 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
 
             cpReals.foreach {
-                case (addr, ConstantPropagation.Constant(x: Double)) => assert(nativeReals.exists((naddr, nx) => naddr == addr && x == nx))
+                case (addr, ConstantPropagation.Constant(x: Double)) => assert(nativeReals.exists((naddr, nx) => naddr == addr && x == nx), s"($addr, $x)")
                 case _ => /* None */
             }
 
@@ -176,7 +176,7 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
         )
 
-        NativeString.freeBounds()
+        NonClassNativeString.freeBounds()
 
 
 

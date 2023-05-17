@@ -31,606 +31,429 @@ import maf.lattice.NativeString
 
 object NativeLattice:
 
-
     type S = NativeString
-    type S2 = String
+    type S3 = Sn_struct
     type B = CChar
     type I = CInt
     type R = CDouble
     type C = CChar
     type Sym = NativeString
-    type Sym2 = String
+    type Sym3 = Sn_struct
 
+    implicit val boolLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
+        private def CChar2Boolean(i: B): Boolean = 
+            i == 1.toByte
 
-    /**
-      * 
-      *
-      * @tparam E  the type of elements that you're willing to inject
-      * @tparam T  the type of the results of injection (i.e. the elements in the lattice)
-      */
-    abstract class AbstractBaseInstance[E, T](val typeName: String) extends Lattice[T]:
+        val top = 4.toByte
+        val bottom = 2.toByte
+        def inject(b: Boolean): B = (if b then 1 else 0).toByte
+        def isTrue(b: B): Boolean = 
+            import boolLatticeOps.boolIsTrue
+            val result = boolIsTrue(b)
+            CChar2Boolean(result)
+        def isFalse(b: B): Boolean =
+            import boolLatticeOps.boolIsFalse
+            val result = boolIsFalse(b)
+            CChar2Boolean(result)
+        def not(b: B): B =
+            import boolLatticeOps.boolNot
+            boolNot(b) 
+        override def join(x: B, y: => B): B =
+            import boolLatticeOps.boolJoin
+            boolJoin(x, y)
+        override def meet(x: B, y: => B): B =
+            import boolLatticeOps.boolMeet
+            boolMeet(x, y)
 
-        def inject(x: E): T
-        def show(x: T): String =
-            if(x == top) then typeName
-            else if(x == bottom) then s"$typeName.⊥"
-            else x.toString
+        override def subsumes(x: B, y: => B): Boolean =
+            import boolLatticeOps.boolSubsumes
+            val result = boolSubsumes(x, y)
+            CChar2Boolean(result) 
 
-        val bottom: T
-        val top: T
-        def join(x: T, y: => T): T =
-
-            if(x == top) then top
-            else if(x == bottom) then y
-            else if(y == top) then top
-            else if(y == bottom) then x
-            else if(x == y) then x
-            else top
-            
-
-        def meet(x: T, y: => T): T = 
-            if(x == bottom || y == bottom) then bottom
-            else if(x == top) then y
-            else if(y == top) then x
-            else if(x == y) then x
-            else bottom
-
-        def subsumes(x: T, y: => T): Boolean =
-            // werkt niet! als y constante is, dan is y != top true
-            // idem x != bottom
-            // x == top || y != top || y == bottom || x != bottom || x == y
-
-            if(x == top) then true
-            else if(y == top) then false
-            else if(y == bottom) then true
-            else if(x == bottom) then false
-            else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
-             
-             
-
-        def eql[B2: BoolLattice](n1: T, n2: T): B2 =
-            if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
-            else if (n1 == top || n2 == top) then BoolLattice[B2].top
-            else BoolLattice[B2].inject(n1 == n2)   
-
+    } 
         
 
-    object L:
-/*         implicit val boolLL: BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
-            private def CChar2Boolean(i: B): Boolean = 
-                i == 1.toByte
+    implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
 
-            val top = 4.toByte
-            val bottom = 2.toByte
-            def inject(b: Boolean): B = (if b then 1 else 0).toByte
-            def isTrue(b: B): Boolean = 
-                import boolLatticeOps.boolIsTrue
-                val result = boolIsTrue(b)
-                CChar2Boolean(result)
-            def isFalse(b: B): Boolean =
-                import boolLatticeOps.boolIsFalse
-                val result = boolIsFalse(b)
-                CChar2Boolean(result)
-            def not(b: B): B =
-                import boolLatticeOps.boolNot
-                boolNot(b) 
-            override def join(x: B, y: => B): B =
-                import boolLatticeOps.boolJoin
-                boolJoin(x, y)
-            override def meet(x: B, y: => B): B =
-                import boolLatticeOps.boolMeet
-                boolMeet(x, y)
+        override def join(x: S, y: => S): S =
+            if (x.eq(top) || y.eq(top)) then top
+            else if (y.eq(bottom)) then x
+            else if (x.eq(bottom)) then y
+            else if (x == y) then x
+            else top
 
-            override def subsumes(x: B, y: => B): Boolean =
-                import boolLatticeOps.boolSubsumes
-                val result = boolSubsumes(x, y)
-                CChar2Boolean(result) 
+        override def meet(x: S, y: => S): S =
+            if (x.eq(bottom)) then bottom
+            else if (y.eq(bottom)) then bottom
+            else if (x.eq(top)) then y
+            else if (y.eq(top)) then x
+            else if (x == y) then x
+            else bottom
 
-        } */
-        implicit val boolLL:  BoolLattice[B] = new AbstractBaseInstance[Boolean, B]("Bool") with BoolLattice[B] {
-            
-            private def CChar2Boolean(i: B): Boolean = 
-                i == 1.toByte
-            
-            val top = 4.toByte
-            val bottom = 2.toByte
-            def inject(b: Boolean): B = (if b then 1 else 0).toByte
-
-            def isTrue(b: B): Boolean = 
-                if(b == top) then true
-                else if(b == bottom) then false
-                else b == 1.toByte
-
-            def isFalse(b: B): Boolean = 
-                if(b == top) then true
-                else if(b == bottom) then false
-                else b != 1.toByte
-            def not(b: B): B = 
-                if(b < bottom) then inject(b != 1)
-                else b
-
-            override def show(x: B): String =
-                if(x == top) then typeName
-                else if(x == bottom) then s"$typeName.⊥"
-                else CChar2Boolean(x).toString
-        }
-         
+        override def eql[B2: BoolLattice](n1: S, n2: S): B2 =
+            if (n1.eq(bottom) || n2.eq(bottom)) then BoolLattice[B2].bottom
+            else if (n1.eq(top) || n2.eq(top)) then BoolLattice[B2].top
+            else BoolLattice[B2].inject(n1 == n2)
 
 
-        implicit val StringLL2: AbstractBaseInstance[String, S2] with StringLattice[S2] = new AbstractBaseInstance[String, S2]("Str") with StringLattice[S2] {
 
-            override def show(x: S2): String =
-                if(x == top) then typeName
-                else if(x == bottom) then s"$typeName.⊥"
-                else x
+        override def subsumes(x: S, y: => S): Boolean =
+        // werkt niet! als y constante is, dan is y != top true
+        // idem x != bottom
+        //x.eq(top) || !(y.eq(top)) || y.eq(bottom) || !(x.eq(bottom)) ||  x == y
 
-            val top: S2 =    "fs6f5ertt85e§(è)"
-            val bottom: S2 = "er6g85esfetr98'§"
-            
-            def inject(x: String): S2 = x
-            
-            def length[I2: IntLattice](s: S2): I2 = 
-                if(s == top) then IntLattice[I2].top
-                else if (s == bottom) then IntLattice[I2].bottom
-                else IntLattice[I2].inject(s.length)
-
-            override def eql[B2: BoolLattice](n1: S2, n2: S2): B2 =
-                if (n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
-                else if (n1 == top || n2 == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 == n2)
-
-            def append(s1: S2, s2: S2): S2 = 
-                if(s1 == bottom || s2 == bottom) then bottom
-                else if(s1 == top || s2 == top) then top
-                else 
-                    inject(s1 ++ s2)
+            if(x.eq(top)) then true
+            else if(y.eq(top)) then false
+            else if(y.eq(bottom)) then true
+            else if(x.eq(bottom)) then false
+            else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
             
 
-            def substring[I2: IntLattice](s: S2, from: I2, to: I2): S2 =
-                if(s == top) then top
-                else if(s == bottom) then bottom
-                else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
-                else if(from == IntLattice[I2].top || to == IntLattice[I2].top) then top
-                else
-                    inject(s.substring(from.asInstanceOf[Int], to.asInstanceOf[Int]).nn)
+        override def show(x: S): String =
+            if(x.eq(top)) then typeName
+            else if(x.eq(bottom)) then s"$typeName.⊥"
+            else x.toString()
 
-            def ref[I2: IntLattice, C2: CharLattice](s: S2, i: I2): C2 =
-                if(s == top) then CharLattice[C2].top
-                else if(s == bottom) then CharLattice[C2].bottom
-                else if(i == IntLattice[I2].top) then CharLattice[C2].top
-                else if(i == IntLattice[I2].bottom) then CharLattice[C2].bottom
-                else 
-                    CharLattice[C2].inject(s(i.asInstanceOf[Int]))
-
-            def set[I2: IntLattice, C2: CharLattice](
-                s: S2,
-                i: I2,
-                c: C2
-              ): S2 =
-                if(s == bottom) then bottom
-                else if (IntLattice[I2].isBottom(i) || CharLattice[C2].isBottom(c)) then bottom
-                else if(s == top) then top
-                else if (i == IntLattice[I2].top || c == CharLattice[C2].top) then top
-                else 
-                    inject(s.replace(s(i.asInstanceOf[Int]), c.asInstanceOf[Char]).nn)
-
-            def lt[B2 : BoolLattice](s1: S2, s2: S2): B2 = 
-                if(s1 == bottom || s2 == bottom) then BoolLattice[B2].bottom
-                else if(s1 == top || s2 == top) then BoolLattice[B2].top
-                else
-                    BoolLattice[B2].inject(s1 < s2)
-
-            def toSymbol[Sym2: SymbolLattice](s: S2): Sym2 = 
-                if(s == top) then SymbolLattice[Sym2].top
-                else if(s == bottom) then SymbolLattice[Sym2].bottom
-                else 
-                    SymbolLattice[Sym2].inject(s)
-
-            def toNumber[I2: IntLattice](s: S2) = 
-                if(s == bottom) then MayFail.success(IntLattice[I2].bottom)
-                else if(s == top) then MayFail.success(IntLattice[I2].top).addError(NotANumberString)
-                else
-                    MayFail.success(IntLattice[I2].inject(s.toInt))
-
-        }
-
-        implicit val StringLL: AbstractBaseInstance[String, S] with StringLattice[S] = new AbstractBaseInstance[String, S]("Str") with StringLattice[S] {
-
-            override def join(x: S, y: => S): S =
-                if (x.eq(top) || y.eq(top)) then top
-                else if (y.eq(bottom)) then x
-                else if (x.eq(bottom)) then y
-                else if (x == y) then x
-                else top
-
-            override def meet(x: S, y: => S): S =
-                if (x.eq(bottom)) then bottom
-                else if (y.eq(bottom)) then bottom
-                else if (x.eq(top)) then y
-                else if (y.eq(top)) then x
-                else if (x == y) then x
-                else bottom
-
-            override def eql[B2: BoolLattice](n1: S, n2: S): B2 =
-                if (n1.eq(bottom) || n2.eq(bottom)) then BoolLattice[B2].bottom
-                else if (n1.eq(top) || n2.eq(top)) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 == n2)
+        val top: S = NativeString.top
+        val bottom: S = NativeString.bottom
+        
+        def inject(x: String): S = NativeString(x)
+        
+        def length[I2: IntLattice](s: S): I2 = 
+            if(s.eq(top)) then
+                IntLattice[I2].top
+            else if (s.eq(bottom)) then
+                IntLattice[I2].bottom
+            else IntLattice[I2].inject(s.length)
 
 
-
-            override def subsumes(x: S, y: => S): Boolean =
-            // werkt niet! als y constante is, dan is y != top true
-            // idem x != bottom
-            //x.eq(top) || !(y.eq(top)) || y.eq(bottom) || !(x.eq(bottom)) ||  x == y
-
-                if(x.eq(top)) then true
-                else if(y.eq(top)) then false
-                else if(y.eq(bottom)) then true
-                else if(x.eq(bottom)) then false
-                else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
-                
-
-            override def show(x: S): String =
-                if(x.eq(top)) then typeName
-                else if(x.eq(bottom)) then s"$typeName.⊥"
-                else x.toString()
-
-            val top: S = NativeString.top
-            val bottom: S = NativeString.bottom
+        def append(s1: S, s2: S): S = 
+            if(s1.eq(bottom) || s2.eq(bottom)) then bottom
+            else if(s1.eq(top) || s2.eq(top)) then top
+            else s1 ++ s2
+        
             
-            def inject(x: String): S = NativeString(x)
+        def substring[I2: IntLattice](s: S, from: I2, to: I2): S =
+            if(s.eq(top)) then top
+            else if(s.eq(bottom)) then bottom
+            else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
+            else if(from == IntLattice[I2].top || to == IntLattice[I2].top) then top
+            else
+                s.substring(from.asInstanceOf[CInt], to.asInstanceOf[CInt])
+
+        def ref[I2: IntLattice, C2: CharLattice](s: S, i: I2): C2 =
+            if(s.eq(top)) then CharLattice[C2].top
+            else if(s.eq(bottom)) then CharLattice[C2].bottom
+            else if(i == IntLattice[I2].top) then CharLattice[C2].top
+            else if(i == IntLattice[I2].bottom) then CharLattice[C2].bottom
+            else 
+                val c = s.ref(i.asInstanceOf[CInt])
+                if(c == 0.toByte) then CharLattice[C2].bottom
+                else CharLattice[C2].inject(c.toChar)
+
+        def set[I2: IntLattice, C2: CharLattice](
+            s: S,
+            i: I2,
+            c: C2
+            ): S =
+            if(s.eq(bottom)) then bottom
+            else if (IntLattice[I2].isBottom(i) || CharLattice[C2].isBottom(c)) then bottom
+            else if(s.eq(top)) then top
+            else if (i == IntLattice[I2].top || c == CharLattice[C2].top) then top
+            else
+                s.replace(i.asInstanceOf[CInt], c.asInstanceOf[CChar])
+
+        def lt[B2 : BoolLattice](s1: S, s2: S): B2 = 
+            if(s1.eq(bottom) || s2.eq(bottom)) then BoolLattice[B2].bottom
+            else if(s1.eq(top) || s2.eq(top)) then BoolLattice[B2].top
+            else
+                BoolLattice[B2].inject(s1.lt(s2))
+
+        def toSymbol[Sym2: SymbolLattice](s: S): Sym2 = 
+            if(s.eq(top)) then SymbolLattice[Sym2].top
+            else if(s.eq(bottom)) then SymbolLattice[Sym2].bottom
+            else 
+                SymbolLattice[Sym2].inject(s.toString())
+
+        def toNumber[I2: IntLattice](s: S): MayFail[I2, Error] =
+            if(s.eq(bottom)) then MayFail.success(IntLattice[I2].bottom)
+            else if(s.eq(top)) then MayFail.success(IntLattice[I2].top).addError(NotANumberString)
+            else
+                val l =  s.toNumber
+                if(l == 0 && !s.isEmpty) then MayFail.failure(NotANumberString)
+                else MayFail.success(IntLattice[I2].inject(l.toInt))
+    } 
+
+    implicit val intLL: AbstractBaseInstance[BigInt, I] with IntLattice[I] = new AbstractBaseInstance[BigInt, I]("Int") with IntLattice[I] {
+
+        val top: I = Int.MaxValue
+        val bottom: I = Int.MinValue
+
+        def inject(x: BigInt): I = x.toInt
+
+        def toReal[R2: RealLattice](n: I): R2 =
+            if(n == top) then RealLattice[R2].top
+            else if(n == bottom) then RealLattice[R2].bottom
+            else RealLattice[R2].inject(n.toDouble)
+
+        def random(n: I): I = 
+            if(n == bottom) then bottom
+            else top 
+
+        private def binop(op: (Int, Int) => Int, n1: I, n2: I) = 
+
+            if(n1 == bottom || n2 == bottom) then bottom
+            else if(n1 == top || n2 == top) then top
+            else op(n1, n2)
+
+        def plus(n1: I, n2: I): I = binop(_ + _, n1, n2)
+        def minus(n1: I, n2: I): I = binop(_ - _, n1, n2)
+        def times(n1: I, n2: I): I = binop(_ * _, n1, n2)
+        def div[F: RealLattice](n1: I, n2: I): F = 
+            if(n1 == top || n2 == top) then RealLattice[F].top
+            else if (n1 == bottom || n2 == bottom) then RealLattice[F].bottom
+            else RealLattice[F].inject(n1.toDouble / n2.toDouble)
+
+        def expt(n1: I, n2: I): I = binop((x, y) => Math.pow(x.toDouble, y.toDouble).toInt, n1, n2)
+
+        def quotient(n1: I, n2: I): I = binop(_ / _, n1, n2)
+
+        def modulo(n1: I, n2: I): I = 
+            binop((x, y) => if (y == 0) then bottom else MathOps.modulo(x, y).toInt, n1 ,n2)
             
-            def length[I2: IntLattice](s: S): I2 = 
-                if(s.eq(top)) then
-                    IntLattice[I2].top
-                else if (s.eq(bottom)) then
-                    IntLattice[I2].bottom
-                else IntLattice[I2].inject(s.length)
+        def remainder(n1: I, n2: I): I = 
+            binop((x, y) => if(y == 0) then bottom else MathOps.remainder(x, y).toInt, n1 ,n2)
+
+        def lt[B2: BoolLattice](n1: I, n2: I): B2 = 
+
+            if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+            else if(n1 == top || n2 == top) then BoolLattice[B2].top
+            else BoolLattice[B2].inject(n1 < n2)
+
+        def valuesBetween(n1: I, n2: I): Set[I] = 
+            if(n1 == bottom || n2 == bottom) then Set()
+            else if(n1 == top || n2 == top) then Set(top)
+            else n1.to(n2).toSet
+
+        def makeString[C2: CharLattice, S2: StringLattice](length: I, char: C2): S2 =
+            if(length == bottom) then  StringLattice[S2].bottom
+            else if(CharLattice[C2].isBottom(char)) then StringLattice[S2].bottom
+            else if(char == CharLattice[C2].top) then StringLattice[S2].top
+            else if(length == top) then StringLattice[S2].top
+            else
+                StringLattice[S2].inject(List.fill(length)(char).mkString)
+
+        def toString[S2: StringLattice](n: I): S2 = 
+
+            if(n == bottom) then StringLattice[S2].bottom
+            else if(n == top) then StringLattice[S2].top
+            else StringLattice[S2].inject(n.toString)
 
 
-            def append(s1: S, s2: S): S = 
-                if(s1.eq(bottom) || s2.eq(bottom)) then bottom
-                else if(s1.eq(top) || s2.eq(top)) then top
-                else s1 ++ s2
+        def toChar[C2: CharLattice](n: I): C2 = 
+            if(n == top) then CharLattice[C2].top
+            else if(n == bottom) then CharLattice[C2].bottom
+            else CharLattice[C2].inject(n.toChar)
+
+    }
+
+    implicit val realLL: AbstractBaseInstance[Double, R] with RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
+        
+        val top = Double.MaxValue
+        val bottom = Double.MinValue
+
+        def inject(x: Double) = x
+
+        def toInt[I2: IntLattice](n: R): I2 = 
+            if(n == top) then IntLattice[I2].top
+            else if(n == bottom) then IntLattice[I2].bottom
+            else IntLattice[I2].inject(n.toInt)
+
+        def ceiling(n: R): R =
+            if(n == top || n == bottom) then n
+            else scalanative.libc.math.ceil(n)
+
+        def floor(n: R): R = 
+            if(n == top || n == bottom) then n
+            else scalanative.libc.math.floor(n)
+
+        def round(n: R): R = 
+            if(n == top || n == bottom) then n
+            else MathOps.round(n)
+
+        def random(n: R): R = 
+            if(n == bottom) then bottom
+            else top
+
+        def log(n: R): R = 
+            if(n == top || n == bottom) then n
+            else if(n < 0) then 
+                bottom
+            else
+                scalanative.libc.math.log(n)
+
+        def sin(n: R): R =
+            if(n == top || n == bottom) then n
+            else scalanative.libc.math.sin(n)
+
+        def asin(n: R): R =
+            if(n == top || n == bottom) then n
+            else if(n > 1 || n < -1) then bottom
+            else asin(n)
+
+        def cos(n: R): R =
+            if(n == top || n == bottom) then n
+            else scalanative.libc.math.cos(n)
+
+        def acos(n: R): R = 
+            if(n == top || n == bottom) then n
+            else if(n > 1 || n < -1) then bottom
+            else scalanative.libc.math.acos(n)
+
+        def tan(n: R): R =
+            if(n == top || n == bottom) then n
+            else scalanative.libc.math.tan(n) // TODO this does not check safety. You should check on pi/2 as the tan would be undefined
+        def atan(n: R): R = 
+            if(n == top || n == bottom) then n
+            else scalanative.libc.math.atan(n)
+
+        def sqrt(n: R): R = 
+            if(n == top || n == bottom) then n
+            else if(n < 0) then bottom
+            else scalanative.libc.math.sqrt(n)
+
+        private def binop(
+            op: (Double, Double) => Double,
+            n1: R,
+            n2: R
+            ) = 
+
+            if (n1 == bottom || n2 == bottom) then bottom
+            else if(n1 == top || n2 == top) then top
+            else op(n1, n2)
+
+        def plus(n1: R, n2: R): R = binop(_ + _, n1, n2)
+        def minus(n1: R, n2: R): R = binop(_ - _, n1, n2)
+        def times(n1: R, n2: R): R = binop(_ * _, n1, n2)
+        def div(n1: R, n2: R): R = binop(_ / _, n1, n2)
+        def expt(n1: R, n2: R): R = binop((x, y) => Math.pow(x, y), n1, n2)
+        def lt[B2: BoolLattice](n1: R, n2: R): B2 = 
+
+            if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
+            else if(n1 == top || n2 == top) then BoolLattice[B2].top
+            else BoolLattice[B2].inject(n1 < n2)
             
-                
-            def substring[I2: IntLattice](s: S, from: I2, to: I2): S =
-                if(s.eq(top)) then top
-                else if(s.eq(bottom)) then bottom
-                else if(IntLattice[I2].isBottom(from) || IntLattice[I2].isBottom(to)) then bottom
-                else if(from == IntLattice[I2].top || to == IntLattice[I2].top) then top
-                else
-                    s.substring(from.asInstanceOf[CInt], to.asInstanceOf[CInt])
+        def toString[S2: StringLattice](n: R): S2 =
 
-            def ref[I2: IntLattice, C2: CharLattice](s: S, i: I2): C2 =
-                if(s.eq(top)) then CharLattice[C2].top
-                else if(s.eq(bottom)) then CharLattice[C2].bottom
-                else if(i == IntLattice[I2].top) then CharLattice[C2].top
-                else if(i == IntLattice[I2].bottom) then CharLattice[C2].bottom
-                else 
-                    val c = s.ref(i.asInstanceOf[CInt])
-                    if(c == 0.toByte) then CharLattice[C2].bottom
-                    else CharLattice[C2].inject(c.toChar)
-
-            def set[I2: IntLattice, C2: CharLattice](
-                s: S,
-                i: I2,
-                c: C2
-              ): S =
-                if(s.eq(bottom)) then bottom
-                else if (IntLattice[I2].isBottom(i) || CharLattice[C2].isBottom(c)) then bottom
-                else if(s.eq(top)) then top
-                else if (i == IntLattice[I2].top || c == CharLattice[C2].top) then top
-                else
-                    s.replace(i.asInstanceOf[CInt], c.asInstanceOf[CChar])
-
-            def lt[B2 : BoolLattice](s1: S, s2: S): B2 = 
-                if(s1.eq(bottom) || s2.eq(bottom)) then BoolLattice[B2].bottom
-                else if(s1.eq(top) || s2.eq(top)) then BoolLattice[B2].top
-                else
-                    BoolLattice[B2].inject(s1.lt(s2))
-
-            def toSymbol[Sym2: SymbolLattice](s: S): Sym2 = 
-                if(s.eq(top)) then SymbolLattice[Sym2].top
-                else if(s.eq(bottom)) then SymbolLattice[Sym2].bottom
-                else 
-                    SymbolLattice[Sym2].inject(s.toString())
-
-            def toNumber[I2: IntLattice](s: S): MayFail[I2, Error] =
-                if(s.eq(bottom)) then MayFail.success(IntLattice[I2].bottom)
-                else if(s.eq(top)) then MayFail.success(IntLattice[I2].top).addError(NotANumberString)
-                else
-                    val l =  s.toNumber
-                    if(l == 0 && !s.isEmpty) then MayFail.failure(NotANumberString)
-                    else MayFail.success(IntLattice[I2].inject(l.toInt))
-        } 
-
-        implicit val intLL: AbstractBaseInstance[BigInt, I] with IntLattice[I] = new AbstractBaseInstance[BigInt, I]("Int") with IntLattice[I] {
-
-            val top: I = Int.MaxValue
-            val bottom: I = Int.MinValue
-
-            def inject(x: BigInt): I = x.toInt
-
-            def toReal[R2: RealLattice](n: I): R2 =
-                if(n == top) then RealLattice[R2].top
-                else if(n == bottom) then RealLattice[R2].bottom
-                else RealLattice[R2].inject(n.toDouble)
-
-            def random(n: I): I = 
-                if(n == bottom) then bottom
-                else top 
-
-            private def binop(op: (Int, Int) => Int, n1: I, n2: I) = 
-
-                if(n1 == bottom || n2 == bottom) then bottom
-                else if(n1 == top || n2 == top) then top
-                else op(n1, n2)
-
-            def plus(n1: I, n2: I): I = binop(_ + _, n1, n2)
-            def minus(n1: I, n2: I): I = binop(_ - _, n1, n2)
-            def times(n1: I, n2: I): I = binop(_ * _, n1, n2)
-            def div[F: RealLattice](n1: I, n2: I): F = 
-                if(n1 == top || n2 == top) then RealLattice[F].top
-                else if (n1 == bottom || n2 == bottom) then RealLattice[F].bottom
-                else RealLattice[F].inject(n1.toDouble / n2.toDouble)
-
-            def expt(n1: I, n2: I): I = binop((x, y) => Math.pow(x.toDouble, y.toDouble).toInt, n1, n2)
-
-            def quotient(n1: I, n2: I): I = binop(_ / _, n1, n2)
-
-            def modulo(n1: I, n2: I): I = 
-                binop((x, y) => if (y == 0) then bottom else MathOps.modulo(x, y).toInt, n1 ,n2)
-                
-            def remainder(n1: I, n2: I): I = 
-                binop((x, y) => if(y == 0) then bottom else MathOps.remainder(x, y).toInt, n1 ,n2)
-
-            def lt[B2: BoolLattice](n1: I, n2: I): B2 = 
-
-                if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
-                else if(n1 == top || n2 == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 < n2)
-
-            def valuesBetween(n1: I, n2: I): Set[I] = 
-                if(n1 == bottom || n2 == bottom) then Set()
-                else if(n1 == top || n2 == top) then Set(top)
-                else n1.to(n2).toSet
-
-            def makeString[C2: CharLattice, S2: StringLattice](length: I, char: C2): S2 =
-                if(length == bottom) then  StringLattice[S2].bottom
-                else if(CharLattice[C2].isBottom(char)) then StringLattice[S2].bottom
-                else if(char == CharLattice[C2].top) then StringLattice[S2].top
-                else if(length == top) then StringLattice[S2].top
-                else
-                   StringLattice[S2].inject(List.fill(length)(char).mkString)
-
-            def toString[S2: StringLattice](n: I): S2 = 
-
-                if(n == bottom) then StringLattice[S2].bottom
-                else if(n == top) then StringLattice[S2].top
-                else StringLattice[S2].inject(n.toString)
-
-
-            def toChar[C2: CharLattice](n: I): C2 = 
-                if(n == top) then CharLattice[C2].top
-                else if(n == bottom) then CharLattice[C2].bottom
-                else CharLattice[C2].inject(n.toChar)
-
-        }
-
-        implicit val realLL: AbstractBaseInstance[Double, R] with RealLattice[R] = new AbstractBaseInstance[Double, R]("Real") with RealLattice[R] {
+            if (n == bottom) then StringLattice[S2].bottom
+            else if(n == top) then StringLattice[S2].top
+            else StringLattice[S2].inject(n.toString)
             
-            val top = Double.MaxValue
-            val bottom = Double.MinValue
-
-            def inject(x: Double) = x
-
-            def toInt[I2: IntLattice](n: R): I2 = 
-                if(n == top) then IntLattice[I2].top
-                else if(n == bottom) then IntLattice[I2].bottom
-                else IntLattice[I2].inject(n.toInt)
-
-            def ceiling(n: R): R =
-                if(n == top || n == bottom) then n
-                else scalanative.libc.math.ceil(n)
-
-            def floor(n: R): R = 
-                if(n == top || n == bottom) then n
-                else scalanative.libc.math.floor(n)
-
-            def round(n: R): R = 
-                if(n == top || n == bottom) then n
-                else MathOps.round(n)
-
-            def random(n: R): R = 
-                if(n == bottom) then bottom
-                else top
-
-            def log(n: R): R = 
-                if(n == top || n == bottom) then n
-                else if(n < 0) then 
-                    bottom
-                else
-                    scalanative.libc.math.log(n)
-
-            def sin(n: R): R =
-                if(n == top || n == bottom) then n
-                else scalanative.libc.math.sin(n)
-
-            def asin(n: R): R =
-                if(n == top || n == bottom) then n
-                else if(n > 1 || n < -1) then bottom
-                else asin(n)
-
-            def cos(n: R): R =
-                if(n == top || n == bottom) then n
-                else scalanative.libc.math.cos(n)
-
-            def acos(n: R): R = 
-                if(n == top || n == bottom) then n
-                else if(n > 1 || n < -1) then bottom
-                else scalanative.libc.math.acos(n)
-
-            def tan(n: R): R =
-                if(n == top || n == bottom) then n
-                else scalanative.libc.math.tan(n) // TODO this does not check safety. You should check on pi/2 as the tan would be undefined
-            def atan(n: R): R = 
-                if(n == top || n == bottom) then n
-                else scalanative.libc.math.atan(n)
-
-            def sqrt(n: R): R = 
-                if(n == top || n == bottom) then n
-                else if(n < 0) then bottom
-                else scalanative.libc.math.sqrt(n)
-
-            private def binop(
-                op: (Double, Double) => Double,
-                n1: R,
-                n2: R
-              ) = 
-
-                if (n1 == bottom || n2 == bottom) then bottom
-                else if(n1 == top || n2 == top) then top
-                else op(n1, n2)
-
-            def plus(n1: R, n2: R): R = binop(_ + _, n1, n2)
-            def minus(n1: R, n2: R): R = binop(_ - _, n1, n2)
-            def times(n1: R, n2: R): R = binop(_ * _, n1, n2)
-            def div(n1: R, n2: R): R = binop(_ / _, n1, n2)
-            def expt(n1: R, n2: R): R = binop((x, y) => Math.pow(x, y), n1, n2)
-            def lt[B2: BoolLattice](n1: R, n2: R): B2 = 
-
-                if(n1 == bottom || n2 == bottom) then BoolLattice[B2].bottom
-                else if(n1 == top || n2 == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 < n2)
-                
-            def toString[S2: StringLattice](n: R): S2 =
-
-                if (n == bottom) then StringLattice[S2].bottom
-                else if(n == top) then StringLattice[S2].top
-                else StringLattice[S2].inject(n.toString)
-                
-        }
+    }
 
 
-        implicit val charLL: AbstractBaseInstance[Char, C] with CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
+    implicit val charLL: AbstractBaseInstance[Char, C] with CharLattice[C] = new AbstractBaseInstance[Char, C]("Char") with CharLattice[C] {
+        
+        val top: C = Byte.MaxValue
+        val bottom: C = Byte.MinValue
+        
+        def inject(x: Char) = x.toByte
+
+        def downCase(c: C): C =
+            if(c == top || c == bottom) then c
+            else tolower(c).toByte
+
+        def upCase(c: C): C = 
+            if(c == top || c == bottom) then c
+            else toupper(c).toByte
+
+        def toString[S2: StringLattice](c: C): S2 = 
+            if(c == top) then StringLattice[S2].top
+            else if (c == bottom) then StringLattice[S2].bottom
+            else StringLattice[S2].inject(c.toString)
+
+        def toInt[I2: IntLattice](c: C): I2 = c.asInstanceOf[I2] // TODO: change later. make I2 maybe IntLattice[I]
+
+        def isLower[B2: BoolLattice](c: C): B2 = 
+            if(c == bottom) then BoolLattice[B2].bottom
+            else if(c == top) then BoolLattice[B2].top
+            else BoolLattice[B2].inject(islower(c) == 1)
+
+        def isUpper[B2: BoolLattice](c: C): B2 =
+
+            if(c == bottom) then BoolLattice[B2].bottom
+            else if(c == top) then BoolLattice[B2].top
+            else BoolLattice[B2].inject(isupper(c) == 1)
+
+
+        override def charEq[B2: BoolLattice](c1: C, c2: C): B2 = 
+            if(c1 == top || c2 == top) then BoolLattice[B2].top
+            else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+            else BoolLattice[B2].inject(c1 == c2)
+
+
+        override def charLt[B2: BoolLattice](c1: C, c2: C): B2 = 
+
+            if(c1 == top || c2 == top) then BoolLattice[B2].top
+            else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+            else BoolLattice[B2].inject(c1 < c2)
+
+
+        override def charEqCI[B2: BoolLattice](c1: C, c2: C): B2 = 
+
+            if(c1 == top || c2 == top) then BoolLattice[B2].top
+            else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+            else BoolLattice[B2].inject(toupper(c1) == toupper(c2))
+
             
-            val top: C = Byte.MaxValue
-            val bottom: C = Byte.MinValue
+        override def charLtCI[B2: BoolLattice](c1: C, c2: C): B2 = 
+
+            if(c1 == top || c2 == top) then BoolLattice[B2].top
+            else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
+            else BoolLattice[B2].inject(toupper(c1) < toupper(c2))
+    }
+
+
+    // TODO: symshow
+    implicit val symLL: AbstractBaseInstance[String, Sym]with SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
+        
+        val top: Sym = NativeString.top
+        val bottom: Sym = NativeString.bottom
+
+        override def join(x: Sym, y: => Sym): Sym =
+            if (x.eq(top) || y.eq(top)) then top
+            else if (y.eq(bottom)) then x
+            else if (x.eq(bottom)) then y
+            else if (x == y) then x
+            else top
+
+
+        override def eql[B2: BoolLattice](n1: Sym, n2: Sym): B2 =
+            if (n1.eq(bottom) || n2.eq(bottom)) then BoolLattice[B2].bottom
+            else if (n1.eq(top) || n2.eq(top)) then BoolLattice[B2].top
+            else BoolLattice[B2].inject(n1 == n2)
+
+        override def subsumes(x: Sym, y: => Sym): Boolean =
+        // werkt niet! als y constante is, dan is y != top true
+        // idem x != bottom
+        //x.eq(top) || !(y.eq(top)) || y.eq(bottom) || !(x.eq(bottom)) ||  x == y
+
+            if(x.eq(top)) then true
+            else if(y.eq(top)) then false
+            else if(y.eq(bottom)) then true
+            else if(x.eq(bottom)) then false
+            else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
             
-            def inject(x: Char) = x.toByte
-
-            def downCase(c: C): C =
-                if(c == top || c == bottom) then c
-                else tolower(c).toByte
-
-            def upCase(c: C): C = 
-                if(c == top || c == bottom) then c
-                else toupper(c).toByte
-
-            def toString[S2: StringLattice](c: C): S2 = 
-                if(c == top) then StringLattice[S2].top
-                else if (c == bottom) then StringLattice[S2].bottom
-                else StringLattice[S2].inject(c.toString)
-
-            def toInt[I2: IntLattice](c: C): I2 = c.asInstanceOf[I2] // TODO: change later. make I2 maybe IntLattice[I]
-
-            def isLower[B2: BoolLattice](c: C): B2 = 
-                if(c == bottom) then BoolLattice[B2].bottom
-                else if(c == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(islower(c) == 1)
-
-            def isUpper[B2: BoolLattice](c: C): B2 =
-
-                if(c == bottom) then BoolLattice[B2].bottom
-                else if(c == top) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(isupper(c) == 1)
-
-
-            override def charEq[B2: BoolLattice](c1: C, c2: C): B2 = 
-                if(c1 == top || c2 == top) then BoolLattice[B2].top
-                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
-                else BoolLattice[B2].inject(c1 == c2)
-
-
-            override def charLt[B2: BoolLattice](c1: C, c2: C): B2 = 
-
-                if(c1 == top || c2 == top) then BoolLattice[B2].top
-                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
-                else BoolLattice[B2].inject(c1 < c2)
-
-
-            override def charEqCI[B2: BoolLattice](c1: C, c2: C): B2 = 
-
-                if(c1 == top || c2 == top) then BoolLattice[B2].top
-                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
-                else BoolLattice[B2].inject(toupper(c1) == toupper(c2))
-
-                
-            override def charLtCI[B2: BoolLattice](c1: C, c2: C): B2 = 
-
-                if(c1 == top || c2 == top) then BoolLattice[B2].top
-                else if(c1 == bottom || c2 == bottom) then BoolLattice[B2].bottom
-                else BoolLattice[B2].inject(toupper(c1) < toupper(c2))
-        }
-
-        implicit val symLL2: AbstractBaseInstance[String, Sym2] with SymbolLattice[Sym2] = new AbstractBaseInstance[String, Sym2]("Symbol") with SymbolLattice[Sym2] {
-            val top: S2 =    "fs6f5ertt85e§(è)"
-            val bottom: S2 = "er6g85esfetr98'§"
-
-            def inject(x: String): Sym2 = x
             
-            def toString[S2: StringLattice](s: Sym2): S2 =
-                if(s == top) then StringLattice[S2].top
-                else if (s == bottom) then StringLattice[S2].bottom
-                else StringLattice[S2].inject(s)
+        def inject(x: String): Sym = NativeString(x)
 
-            override def show(x: Sym2): String =
-                if(x == top) then typeName
-                else if(x == bottom) then s"$typeName.⊥"
-                else s"'${x.toString}"
-        }
+        def toString[S2: StringLattice](s: Sym): S2 = 
+            if(s == top) then StringLattice[S2].top
+            else if(s == bottom) then StringLattice[S2].bottom
+            else StringLattice[S2].inject(s.toString)
 
-        // TODO: symshow
-        implicit val symLL: AbstractBaseInstance[String, Sym]with SymbolLattice[Sym] = new AbstractBaseInstance[String, Sym]("Symbol") with SymbolLattice[Sym] {
-            
-            val top: Sym = NativeString.top
-            val bottom: Sym = NativeString.bottom
-
-            override def join(x: Sym, y: => Sym): Sym =
-                if (x.eq(top) || y.eq(top)) then top
-                else if (y.eq(bottom)) then x
-                else if (x.eq(bottom)) then y
-                else if (x == y) then x
-                else top
-
-
-            override def eql[B2: BoolLattice](n1: Sym, n2: Sym): B2 =
-                if (n1.eq(bottom) || n2.eq(bottom)) then BoolLattice[B2].bottom
-                else if (n1.eq(top) || n2.eq(top)) then BoolLattice[B2].top
-                else BoolLattice[B2].inject(n1 == n2)
-
-            override def subsumes(x: Sym, y: => Sym): Boolean =
-            // werkt niet! als y constante is, dan is y != top true
-            // idem x != bottom
-            //x.eq(top) || !(y.eq(top)) || y.eq(bottom) || !(x.eq(bottom)) ||  x == y
-
-                if(x.eq(top)) then true
-                else if(y.eq(top)) then false
-                else if(y.eq(bottom)) then true
-                else if(x.eq(bottom)) then false
-                else x == y // if both x is bottom, it is certainly not equal to y at this point, since the possibility of y being a bottom is already exhausted.
-                
-                
-            def inject(x: String): Sym = NativeString(x)
-
-            def toString[S2: StringLattice](s: Sym): S2 = 
-                if(s == top) then StringLattice[S2].top
-                else if(s == bottom) then StringLattice[S2].bottom
-                else StringLattice[S2].inject(s.toString)
-
-            override def show(x: Sym): String =
-                if(x == top) then typeName
-                else if(x == bottom) then s"$typeName.⊥"
-                else s"'${x.toString}"
-        }
+        override def show(x: Sym): String =
+            if(x == top) then typeName
+            else if(x == bottom) then s"$typeName.⊥"
+            else s"'${x.toString}"
+    }

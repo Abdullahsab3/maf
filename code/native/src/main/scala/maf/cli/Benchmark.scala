@@ -54,7 +54,7 @@ object  Benchmark:
                 super.run(timeout)
                 emptyMemory()
             override def intraAnalysis(cmp: SchemeModFComponent) =
-                new IntraAnalysis(cmp) with BigStepModFIntra with NativeIntraGC
+                new IntraAnalysis(cmp) with BigStepModFIntra with IntraGC
         }
 
     def newNativeAnalysisWoGC(program: SchemeExp) =

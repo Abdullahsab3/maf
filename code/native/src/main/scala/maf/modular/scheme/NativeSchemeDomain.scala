@@ -3,7 +3,7 @@ package maf.modular.scheme
 import maf.lattice.NativeLattice
 import maf.language.scheme.lattices.ModularSchemeLattice
 import maf.language.scheme.primitives._
-import maf.lattice.NativeLattice.L._
+import maf.lattice.NativeLattice._
 
 object NativeSchemeDomain extends ModularSchemeLatticeWrapper:
     type S = NativeLattice.S
