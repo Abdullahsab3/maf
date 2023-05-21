@@ -30,6 +30,7 @@ import maf.lattice.NativeString
 
 
 object NativeLattice:
+    
 
     type S = NativeString
     type S3 = Sn_struct
@@ -299,7 +300,7 @@ object NativeLattice:
         def asin(n: R): R =
             if(n == top || n == bottom) then n
             else if(n > 1 || n < -1) then bottom
-            else asin(n)
+            else scalanative.libc.math.asin(n)
 
         def cos(n: R): R =
             if(n == top || n == bottom) then n

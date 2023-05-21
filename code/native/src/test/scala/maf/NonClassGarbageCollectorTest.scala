@@ -122,17 +122,11 @@ class NonClassGarbageCollectorTest extends AnyFlatSpec with should.Matchers:
             val cp = newCPAnalysis(text)
             val sn = newNativeAnalysisWithGC(text)
 
-           // println(s"allocList: ${NativeString.allocList}")
-
 
             cp.analyzeWithTimeout(Timeout.start(Duration(1, MINUTES)))
             sn.analyzeWithTimeout(Timeout.start(Duration(1, MINUTES)))
 
             sn.emptyMemory()
-
-            //println(s"freectr = ${NativeString.free_ctr}, mallocctr = ${NativeString.malloc_ctr}")
-
-            //assert(NativeString.allocatedStrings.isEmpty)
 
 
             cpStrings.foreach {

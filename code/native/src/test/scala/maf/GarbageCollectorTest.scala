@@ -27,6 +27,8 @@ import maf.lattice._
 class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
     val testFiles: List[String] = List(
+
+        "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
         "test/R5RS/gambit/sboyer.scm",
         "test/R5RS/gambit/nboyer.scm",
         "test/R5RS/icp/icp_4_qeval.scm",
@@ -38,7 +40,6 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
         "test/R5RS/icp/icp_1c_prime-sum-pair.scm",
         "test/R5RS/icp/icp_2_aeval.scm",
         "test/R5RS/icp/icp_3_leval.scm",
-        "test/R5RS/icp/icp_6_stopandcopy_scheme.scm",
         "test/R5RS/icp/icp_8_compiler.scm"  
         )
 
@@ -91,24 +92,30 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
             with NativeSchemeDomain
             with FIFOWorklistAlgorithm[SchemeExp] {
 
-            override def emptyMemory(): Unit =
-                store.foreach((addr, v) =>
-                    v.contents.foreach(
-                    (key, el) =>
-                        
-                        el match
-                            case str: modularLattice.Str =>
-                                nativeStrings += (addr.asInstanceOf[Address], fromCString(str.s.asInstanceOf[NativeString].underlying._2))
-                            case str: modularLattice.Symbol =>
-                                nativeSyms += (addr.asInstanceOf[Address], fromCString(str.s.asInstanceOf[NativeString].underlying._2))
-                            case int: modularLattice.Int =>
-                                nativeInts += (addr.asInstanceOf[Address], int.i.asInstanceOf[NativeLattice.I])
-                            case real: modularLattice.Real =>
-                                nativeReals += (addr.asInstanceOf[Address], real.r.asInstanceOf[NativeLattice.R])
-                            case char: modularLattice.Char =>
-                                nativeChars += (addr.asInstanceOf[Address], char.c.asInstanceOf[NativeLattice.C])
-                            case _ => /* None */))
-                super.emptyMemory()
+            def getValues(addr: Address, v: Value): Unit =
+                v.contents.values.foreach {
+                    case str: modularLattice.Str =>
+                        nativeStrings += (addr, fromCString(str.s.asInstanceOf[NativeString].underlying._2))
+                    case str: modularLattice.Symbol =>
+                        nativeSyms += (addr, fromCString(str.s.asInstanceOf[NativeString].underlying._2))
+                    case int: modularLattice.Int =>
+                        nativeInts += (addr, int.i.asInstanceOf[NativeLattice.I])
+                    case real: modularLattice.Real =>
+                        nativeReals += (addr, real.r.asInstanceOf[NativeLattice.R])
+                    case char: modularLattice.Char =>
+                        nativeChars += (addr, char.c.asInstanceOf[NativeLattice.C])
+                    case modularLattice.Cons(car, cdr) =>
+                        getValues(addr, car)
+                        getValues(addr, cdr)
+                    case modularLattice.Vec(size, elements) =>
+                        elements.foreach((i, e) =>
+                            getValues(addr, e))
+                    case _ => /* None */ }
+
+
+            override def run(timeout: Timeout.T): Unit =
+                super.run(timeout)
+                store.foreach((addr, v) => getValues(addr, v))
 
             override def intraAnalysis(cmp: SchemeModFComponent) =
                 new IntraAnalysis(cmp) with IntraGC with BigStepModFIntra
@@ -127,13 +134,6 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
 
             cp.analyzeWithTimeout(Timeout.start(Duration(1, MINUTES)))
             sn.analyzeWithTimeout(Timeout.start(Duration(1, MINUTES)))
-
-            sn.emptyMemory()
-
-            //println(s"freectr = ${NativeString.free_ctr}, mallocctr = ${NativeString.malloc_ctr}")
-
-            //assert(NativeString.allocatedStrings.isEmpty)
-
 
             cpStrings.foreach {
                 case (addr, ConstantPropagation.Constant(x: String)) => assert(nativeStrings.exists((naddr, nx) => naddr == addr && nx == x))
@@ -162,6 +162,8 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
                 case _ => /* None */
             }
 
+            assert(NativeString.allocatedStrings.size <= nativeStrings.size + nativeSyms.size, "There are more strings that there should be")
+
             cpStrings = Map.empty
             cpChars = Map.empty
             cpInts = Map.empty
@@ -173,6 +175,7 @@ class GarbageCollectorTest extends AnyFlatSpec with should.Matchers:
             nativeInts = Map.empty
             nativeSyms = Map.empty
             nativeReals = Map.empty
+
 
         )
 
