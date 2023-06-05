@@ -1,5 +1,8 @@
 Modular Analysis Framework (MAF): A Framework for Modular Analysis of Dynamic Languages
 
+This fork is intended to investigate optimalization possibilities of MAF by using low-level implementation of certain parts of the framework. This fork is the work presented for my Bachelor dissertation. For a full explanation, please refer to the pdf [eindrapport-abdullah-sabaaallil.pdf](https://github.com/Abdullahsab3/maf/blob/master/eindrapport-abdullah-sabaaallil.pdf) in this repo.
+
+Below is the original exaplanation of MAF
 # Goal
 
 The goal of this artefact is to experiment with abstract machines and language semantics. 
